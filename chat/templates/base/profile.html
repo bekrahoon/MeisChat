@@ -1,0 +1,40 @@
+{% extends "main.html" %} {% block content %}
+<style>
+  .profile-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px; /* Добавляет промежуток между колонками */
+    margin-top: 20px; /* Добавляет отступ сверху */
+    justify-content: center;
+  }
+
+  .profile-container > div {
+    padding: 10px; /* Добавляет внутренние отступы */
+    border: 1px solid #ddd; /* Добавляет границу вокруг секций */
+    border-radius: 5px; /* Скругляет углы границы */
+    width: 50%;
+  }
+
+  .profile-container h1 {
+    margin-bottom: 10px; /* Добавляет отступ снизу заголовка */
+  }
+</style>
+
+<div class="profile-container">
+  <div>
+    <h1>{{ user.username }}</h1>
+    <!-- Вы можете добавить другую информацию о пользователе здесь, если нужно -->
+    <p>Email: {{ user.email }}</p>
+  </div>
+
+  <div>
+    <h3>Groups</h3>
+    {% include "base/feed_component.html" %}
+  </div>
+
+  <div>
+    <h3>Recent Activities</h3>
+    {% include "base/activivty_componeit.html" %}
+  </div>
+</div>
+{% endblock %}

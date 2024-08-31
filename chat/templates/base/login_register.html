@@ -1,0 +1,19 @@
+<div class="auth-form" style="text-align: center; margin: 0 auto; background-color: #333; color: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);">
+  {% if page == 'login' %}
+  <h2 style="color: #fff;">Login</h2>
+  <form action="" method="POST">
+    {% csrf_token %} {{ form.as_p }}
+    <button type="submit" class="btn btn-primary" style="background-color: #444; border-color: #444;">Login</button>
+  </form>
+
+  <p style="color: #ccc;">Don't have an account? <a href="{% url 'register' %}" style="color: #fff;">Sign up</a></p>
+  {% else %}
+
+  <h2 style="color: #fff;">Register</h2>
+  <form action="" method="POST">
+    {% csrf_token %} {{ form.as_p }}
+    <input type="submit" value="Register" class="btn btn-success" style="background-color: #444; border-color: #444;" />
+  </form>
+  <p style="color: #ccc;">Already have an account? <a href="{% url 'login' %}" style="color: #fff;">Login</a></p>
+  {% endif %}
+</div>

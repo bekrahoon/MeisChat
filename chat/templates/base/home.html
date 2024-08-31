@@ -1,0 +1,31 @@
+{% extends "main.html" %} {% block content %}
+<div class="home-container" style="background-color: #333; color: #fff;">
+  <div>
+    <hr style="border-color: #555;" />
+    <h5 style="color: #66d9ef;">You have {{ group_count }} groups</h5>
+    <div class="feed">{% include "base/feed_component.html" %}</div>
+  </div>
+  <div >
+    <hr style="border-color: #555;" />
+    <h3 style="color: #fff; background-color: #333; padding: 10px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);">Recent correspondence</h3>
+
+    <div class="activity">{% include "base/activivty_componeit.html" %}</div>
+  </div>
+</div>
+
+<style>
+  .home-container {
+    height: 85vh;
+    overflow-y: hidden;
+  }
+  .feed{
+    overflow-y: auto; /* Прокрутка для сообщений */
+    height: 50%;
+  }
+  .activity{
+    overflow-y: auto; /* Прокрутка для сообщений */
+    height: 50%;
+    
+  }
+</style>
+{% endblock %}

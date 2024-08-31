@@ -1,0 +1,38 @@
+{% extends "main.html" %} {% block content %}
+<div class="container mt-3">
+  <h2>{{ form.instance.pk|yesno:"Update Group,Create Group" }}</h2>
+  <form action="" method="POST">
+    {% csrf_token %}
+    <div class="form-group">{{ form.as_p }}</div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+    <a href="{% url 'home' %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock content %}
+<style>
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    text-decoration: none;
+    border-radius: 0.25rem;
+  }
+
+  .btn-primary {
+    background-color: #007bff;
+    color: #fff;
+  }
+
+  .btn-secondary {
+    background-color: #6c757d;
+    color: #fff;
+  }
+</style>

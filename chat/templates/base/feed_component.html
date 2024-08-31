@@ -1,0 +1,44 @@
+<div class="group-feed" style="background-color: #333; color: #fff;">
+    {% for group in groups %}
+        <div class="group-item" style="background-color: #444; color: #fff;">
+            {% if request.user == group.host %}
+                <a class="btn btn-primary" href="{% url "update-group" group.id %}" style="background-color: #66d9ef;">Edit</a>
+                <a class="btn btn-danger" href="{% url "delete-group" group.id %}" style="background-color: #f92672;">Delete</a>
+            {% endif %}
+            <a class="username" href="{% url "user-profile" group.host.id %}" style="color: #fff;">{{ group.host.username }}</a>
+            <h4><a href="{% url "group" group.id %}" style="color: #fff;">{{ group.name }}</a></h4>
+            <small style="color: #999;">{{ group.description }}</small>
+            <hr style="border-color: #555;">
+        </div>
+    {% endfor %}
+</div>
+<style>
+    .group-feed {
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .group-item {
+        margin-bottom: 20px;
+        padding: 10px;
+        border: 1px solid #555;
+        border-radius: 4px;
+    }
+    
+    .btn {
+        padding: 5px 10px;
+        margin-right: 10px;
+        text-decoration: none;
+        color: #fff;
+        border-radius: 4px;
+    }
+    
+    .btn-primary {
+        background-color: #66d9ef;
+    }
+    
+    .btn-danger {
+        background-color: #f92672;
+    }
+    
+</style>

@@ -1,0 +1,11 @@
+<div class="participants-list">
+  <h3>Participants</h3>
+  <hr />
+  {% if participants %} {% for user in participants %}
+  <div class="participant">
+    <p><a href="{% url 'user-profile' user.id %}">{{ user.username }}</a></p>
+  </div>
+  {% endfor %} {% else %}
+  <p>No participants yet.</p>
+  {% endif %}
+</div>
