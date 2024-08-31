@@ -1,27 +1,48 @@
-from channels.generic.websocket import WebsocketConsumer
-from django.shortcuts import get_object_or_404
-from django.template.loader import render_to_string
-from .models import *
 import json
+from channels.generic.websocket import AsyncWebsocketConsumer
 
-class YourConsumer(WebsocketConsumer):
-    def connect(self):
-        self.user = self.scope['user']
-        self.chatroom_name = self.scope['url_route']['kwargs']['chatroom_name']
-        self.chatroom = get_object_or_404(GroupIs, group_name = self.chatroom_name)
-        self.accept()
-        
-    def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        body = text_data_json['body']
-        message = Message.objects.create(
-            body = body,
-            user = self.user, 
-            group = self.chatroom
+
+
+
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.group_id = self.scope['url_route']['kwargs']['group_id']
+        self.group_name = f'chat_{self.group_id}'
+
+        # Join room group
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
         )
-        context = {
-            'message':message,
-            'user':self.user,
-        }
-        html = render_to_string("base/chat_message_p.html", context)
-        self.send(text_data=html)
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        # Leave room group
+        await self.channel_layer.group_discard(
+            self.group_name,
+            self.channel_name
+        )
+
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        message = text_data_json['message']
+
+        # Send message to room group
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                'type': 'chat_message',
+                'message': message
+            }
+        )
+
+    async def chat_message(self, event):
+        message = event['message']
+
+        # Send message to WebSocket
+        await self.send(text_data=json.dumps({
+            'message': message
+        }))
+

@@ -1,6 +1,6 @@
-from django.urls import path
-from .consumers import *
+from django.urls import re_path
+from . import consumers
 
 websocket_urlpatterns = [
-    path("ws/chatroom/<chatroom_name>", YourConsumer.as_asgi()),
+    re_path(r'^ws/chat/(?P<group_id>\d+)/$', consumers.ChatConsumer.as_asgi()),
 ]

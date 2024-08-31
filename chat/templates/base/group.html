@@ -1,85 +1,128 @@
-{% extends "main.html" %} {% block content %}
+{% extends "main.html" %} 
+{% block content %}
+<div class="group-container" style="background-color: #2f2f2f; padding: 20px;">
 
-  <div class="group-container" style="background-color: #2f2f2f; padding: 20px;">
-
-    <div class="group-header" style="margin-bottom: 20px;">
-      {% include "base/feed_component.html" %}
-    </div>
-
-    <div class="chat-layout" style="padding: 20px;">
-      <div class="chat-header" style="background-color: #1a1a1a; color: #fff; padding: 10px;">
-        <h1>{{ group.name }}</h1>
-        <p>{{ group.description }}</p>
-      </div>
-
-      <!-- Прокручиваемая область с сообщениями -->
-      <div id="group" class="chat-messages" style="background-color: #3b3b3b; padding: 20px;">
-        <div>
-          <h3 style="color: #fff;">Conversation</h3>
-          <hr style="border-color: #555; margin-bottom: 20px;"/>
-          <div id="chat_room" style="padding: 20px;">
-            {% for message in group_messages %} 
-            {% include "base/chat_message.html" %} 
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-
-      <!-- Форма для отправки сообщений -->
-      <div class="room__message" style="background-color: #2f2f2f; padding: 20px;">
-        <form action="" method="POST" style="margin-top: 20px;">
-          {% csrf_token %}
-          <input name="body" placeholder="Write your message here..." style="background-color: #4f4f4f; color: #fff; padding: 10px;"/>
-          <button type="submit" style="background-color: #1a1a1a; color: #fff; padding: 10px;">Send</button>
-        </form>
-      </div>
-
-    </div>
+  <div class="group-header" style="margin-bottom: 20px;">
+    {% include "base/feed_component.html" %}
   </div>
 
-  <style>
-    .group-container {
-      display: grid;
-      grid-template-columns: 1fr 3fr;
-      height: 80vh; /* Занимает всю высоту экрана */
-      padding: 20px;
-    }
+  <div class="chat-layout" style="padding: 20px;">
+    <div class="chat-header" style="background-color: #1a1a1a; color: #fff; padding: 10px;">
+      <h1>{{ group.name }}</h1>
+      <p>{{ group.description }}</p>
+    </div>
 
-    .chat-layout {
-      display: grid;
-      grid-template-rows: auto 1fr auto; /* Автоматическая высота для заголовка, растяжение для сообщений и фиксированная высота для формы */
-      height: 100%; /* Занимает всю оставшуюся высоту */
-      padding: 20px;
-    }
-    .group-header {
-      height: 100%;
-      overflow-y: auto; /* Прокрутка для сообщений */
-      padding: 20px;
-    }
+    <!-- Прокручиваемая область с сообщениями -->
+    <div id="chat-messages" class="chat-messages" style="background-color: #3b3b3b; padding: 20px;">
+      <div id="chat_room" style="padding: 20px;">
+        {% for message in group_messages reversed %} 
+        {% include "base/chat_message.html" %} 
+        {% endfor %}
+      </div>
+    </div>
 
-    .chat-messages {
-      height: 300px;
-      overflow-y: auto; /* Прокрутка для сообщений */
-      padding: 20px;
-    }
+    <!-- Форма для отправки сообщений -->
+    <div class="room__message" style="background-color: #2f2f2f; padding: 20px;">
+      <form id="message-form" action="" method="POST" style="margin-top: 20px;">
+        {% csrf_token %}
+        <input id="message-input" name="body" placeholder="Write your message here..." style="background-color: #4f4f4f; color: #fff; padding: 10px;"/>
+        <button type="submit" style="background-color: #1a1a1a; color: #fff; padding: 10px;">Send</button>
+      </form>
+    </div>
 
-    .form-container {
-      display: flex;
-      justify-content: center; /* Центрирование формы */
-      padding: 20px;
-    }
-    .room__message {
-      padding: 20px;
-    }
-  </style>
-  {% block javascript %}
-  <script>
-    function scrollToBottom() {
-      const container = document.getElementById("chat-messages");
-      if (container) {
-        container.scrollTop = container.scrollHeight - container.offsetHeight;
-      }
+  </div>
+</div>
+
+<style>
+  .group-container {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    height: 80vh; /* Занимает всю высоту экрана */
+    padding: 20px;
+  }
+
+  .chat-layout {
+    display: grid;
+    grid-template-rows: auto 1fr auto; /* Автоматическая высота для заголовка, растяжение для сообщений и фиксированная высота для формы */
+    height: 100%; /* Занимает всю оставшуюся высоту */
+    padding: 20px;
+  }
+  .group-header {
+    height: 100%;
+    overflow-y: auto; /* Прокрутка для сообщений */
+    padding: 20px;
+  }
+
+  .chat-messages {
+    height: 300px;
+    overflow-y: auto; /* Прокрутка для сообщений */
+    padding: 20px;
+  }
+
+  .form-container {
+    display: flex;
+    justify-content: center; /* Центрирование формы */
+    padding: 20px;
+  }
+  .room__message {
+    padding: 20px;
+  }
+</style>
+
+{% block javascript %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const groupId = "{{ group.id }}";
+    const chatSocket = new WebSocket(
+        `ws://${window.location.host}/ws/chat/${groupId}/`
+    );
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const message = data['message'];
+
+        // Добавление нового сообщения в контейнер сообщений
+        document.querySelector('#chat_room').insertAdjacentHTML('beforeend', `
+            <div class="message">
+                <small>${message.user} ${message.created} ago</small>
+                <p>${message.body}</p>
+                <hr />
+            </div>
+        `);
+
+        // Прокрутка вниз
+        scrollToBottom();
     };
-    document.addEventListener("DOMContentLoaded", scrollToBottom);
-  </script>
-  {% endblock javascript %} {% endblock %}
+
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+    document.querySelector('#message-form').onsubmit = function(e) {
+        e.preventDefault();
+        const messageInput = document.querySelector('#message-input');
+        const message = messageInput.value;
+
+        // Отправка сообщения через WebSocket
+        chatSocket.send(JSON.stringify({
+            'message': message
+        }));
+
+        // Очистка поля ввода
+        messageInput.value = '';
+    };
+
+    function scrollToBottom() {
+        const container = document.getElementById("chat_room");
+        if (container) {
+            container.scrollTop = container.scrollHeight - container.clientHeight;
+        }
+    }
+
+    // Прокрутка вниз при загрузке страницы
+    scrollToBottom();
+});
+
+</script>
+{% endblock %}
+{% endblock %}
