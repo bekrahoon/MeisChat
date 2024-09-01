@@ -60,11 +60,50 @@ def registerPage(request):
     return render(request, 'base/login_register.html', context)
 
 
-
 def home(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    q = request.GET.get('q') if request.GET.get('q') else ''
+    
+    # Поиск по группам
+    groups = GroupIs.objects.filter(
+        Q(name__icontains=q) |
+        Q(description__icontains=q)
+    )
+    
+    group_count = groups.count()
+
+    # Поиск по сообщениям
+    group_messages = Message.objects.filter(
+        Q(group__name__icontains=q)
+    )
+
+    # Поиск по пользователям
+    users = MyUser.objects.filter(
+        Q(username__icontains=q) |
+        Q(email__icontains=q)
+    )
+    
+    context = {
+        'groups': groups, 
+        'group_count': group_count, 
+        'group_messages': group_messages,
+        'users': users,  # Добавление найденных пользователей в контекст
+        'q': q  # Передача строки поиска в контекст для отображения в шаблоне
+    }
+    
+    return render(request, 'base/home.html', context)
+
+
+
+
+def group(request, pk):    
+    
     if request.user.is_authenticated !=  True:
         return redirect('login')
     
+    page = 'participants'
     
     q = request.GET.get('q') if request.GET.get('q') != None else ''
     groups = GroupIs.objects.filter(
@@ -76,16 +115,37 @@ def home(request):
     group_messages = Message.objects.filter(
         Q(group__name__icontains = q)
         )
-    context = {'groups':groups, 
+    
+    
+    
+    group = GroupIs.objects.get(id=pk)
+    group_messages = group.message_set.all()
+    participants = group.participants.all()
+
+    if request.method == 'POST':
+        message = Message.objects.create(
+            user=request.user,
+            group=group,
+            body=request.POST.get('body')
+        )
+        if message:
+            print("Сообщение успешно сохранено:", message.body)
+        else:
+            print("Ошибка при сохранении сообщения")
+        group.participants.add(request.user)
+        return redirect('group', pk=group.id)
+
+
+    context = {'group':group, 'group_messages':group_messages,
+               'participants':participants,
+               'groups':groups, 
                'group_count':group_count, 
-               'group_messages':group_messages}
-    return render(request, 'base/home.html', context)
+               'group_messages':group_messages,
+               'page':page}
+    
+    return render(request, 'base/group.html', context)
 
-
-
-
-
-def group(request, pk):    
+def participants(request, pk):    
     
     if request.user.is_authenticated !=  True:
         return redirect('login')
@@ -113,8 +173,13 @@ def group(request, pk):
             group=group,
             body=request.POST.get('body')
         )
+        if message:
+            print("Сообщение успешно сохранено:", message.body)
+        else:
+            print("Ошибка при сохранении сообщения")
         group.participants.add(request.user)
         return redirect('group', pk=group.id)
+
 
     context = {'group':group, 'group_messages':group_messages,
                'participants':participants,
@@ -123,9 +188,7 @@ def group(request, pk):
                'group_messages':group_messages,
                }
     
-    return render(request, 'base/group.html', context)
-
-
+    return render(request, 'base/participants.html', context)
 
 
 def userProfile(request, pk):

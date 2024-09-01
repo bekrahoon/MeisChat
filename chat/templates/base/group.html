@@ -5,17 +5,22 @@
   <div class="group-header" style="margin-bottom: 20px;">
     {% include "base/feed_component.html" %}
   </div>
-
+    
   <div class="chat-layout" style="padding: 20px;">
     <div class="chat-header" style="background-color: #1a1a1a; color: #fff; padding: 10px;">
-      <h1>{{ group.name }}</h1>
+      <div>
+        <span id="user-status-{{ user.id }}">offline</span>
+        {{ user.username }}
+    </div>
+    
+      <h3>{{ group.name }}</h3>
       <p>{{ group.description }}</p>
     </div>
 
     <!-- Прокручиваемая область с сообщениями -->
     <div id="chat-messages" class="chat-messages" style="background-color: #3b3b3b; padding: 20px;">
       <div id="chat_room" style="padding: 20px;">
-        {% for message in group_messages reversed %} 
+        {% for message in group_messages %} 
         {% include "base/chat_message.html" %} 
         {% endfor %}
       </div>
@@ -29,7 +34,6 @@
         <button type="submit" style="background-color: #1a1a1a; color: #fff; padding: 10px;">Send</button>
       </form>
     </div>
-
   </div>
 </div>
 
@@ -71,7 +75,7 @@
 
 {% block javascript %}
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     const groupId = "{{ group.id }}";
     const chatSocket = new WebSocket(
         `ws://${window.location.host}/ws/chat/${groupId}/`
@@ -80,17 +84,17 @@
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
         const message = data['message'];
+        const user = data['user'];
+        const created = data['created'];
 
-        // Добавление нового сообщения в контейнер сообщений
         document.querySelector('#chat_room').insertAdjacentHTML('beforeend', `
             <div class="message">
-                <small>${message.user} ${message.created} ago</small>
-                <p>${message.body}</p>
+                <small class="message-meta">${user} ${new Date(created).toLocaleTimeString()}</small>
+                <p class="message-body">${message}</p>
                 <hr />
             </div>
         `);
 
-        // Прокрутка вниз
         scrollToBottom();
     };
 
@@ -123,6 +127,30 @@
     scrollToBottom();
 });
 
+});
+
 </script>
+<script>
+  const chatSocket = new WebSocket(
+      `ws://${window.location.host}/ws/online-tracker/`
+  );
+
+  chatSocket.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      const user_id = data['user_id'];
+      const status = data['status'];
+
+      // Обновите статус пользователя на странице
+      const userStatusElement = document.getElementById(`user-status-${user_id}`);
+      if (userStatusElement) {
+          userStatusElement.innerText = status;
+      }
+  };
+
+  chatSocket.onclose = function(e) {
+      console.error('WebSocket закрыт неожиданно');
+  };
+</script>
+
 {% endblock %}
 {% endblock %}

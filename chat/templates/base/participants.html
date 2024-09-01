@@ -1,11 +1,14 @@
-<div class="participants-list">
-  <h3>Participants</h3>
-  <hr />
+{% extends "main.html" %}
+{% block content %}
+<div class="participants-list" style="background-color: #444; color: #fff; padding: 5px; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.3); width: 40%; margin: 0 auto;">
+  <h3 style="text-align: center; color: #3ed37c;">Participants</h3>
+  <hr style="border-color: #777;" />
   {% if participants %} {% for user in participants %}
-  <div class="participant">
-    <p><a href="{% url 'user-profile' user.id %}">{{ user.username }}</a></p>
+  <div class="participant" style="text-align: center;">
+    <p><a href="{% url 'user-profile' user.id %}" style="color: #9fdefe;">{{ user.username }}</a></p>
   </div>
   {% endfor %} {% else %}
-  <p>No participants yet.</p>
+  <p style="text-align: center; color: #999;">No participants yet.</p>
   {% endif %}
 </div>
+{% endblock %}

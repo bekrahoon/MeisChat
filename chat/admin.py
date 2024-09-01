@@ -8,4 +8,6 @@ admin.site.register(GroupIs)
 admin.site.register(OTPDevice)
 admin.site.register(Message)
 admin.site.register(MyUser)
+admin.site.register(UserStatus)
+
 

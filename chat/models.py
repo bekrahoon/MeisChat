@@ -40,3 +40,14 @@ class MyUser(AbstractUser):
 
 class OTPDevice(Device):
     pass
+
+# models.py
+
+from django.db import models
+
+class UserStatus(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    status = models.CharField(max_length=10, default='offline')
+
+    def __str__(self):
+        return f"{self.user.username}: {self.status}"

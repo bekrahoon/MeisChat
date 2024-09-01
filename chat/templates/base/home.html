@@ -1,4 +1,49 @@
 {% extends "main.html" %} {% block content %}
+
+{% if q %}
+  <h3 style="text-align: center; color: #66d9ef; font-family: Arial, sans-serif; font-size: 24px;">Search results for "{{ q }}":</h3>
+
+  <!-- Результаты поиска по группам -->
+  {% if groups %}
+    <h4 style="text-align: center; font-family: Arial, sans-serif; font-size: 18px;">Groups:</h4>
+    <ul style="list-style: none; padding: 0; margin: 0; width: 50%; margin: 0 auto;">
+      {% for group in groups %}
+        <li style="background-color: #666; color: #53da6e; padding: 10px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); font-family: Arial, sans-serif; font-size: 14px;">{{ group.name }} - {{ group.description }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p style="text-align: center; font-family: Arial, sans-serif; font-size: 14px;">No groups found.</p>
+  {% endif %}
+
+  <!-- Результаты поиска по сообщениям -->
+  {% if group_messages %}
+    <h4 style="text-align: center; font-family: Arial, sans-serif; font-size: 18px;">Messages:</h4>
+    <ul style="list-style: none; padding: 0; margin: 0; width: 50%; margin: 0 auto;">
+      {% for message in group_messages %}
+        <li style="background-color: #666; color: #53da6e; padding: 10px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); font-family: Arial, sans-serif; font-size: 14px;">{{ message.body }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p style="text-align: center; font-family: Arial, sans-serif; font-size: 14px;">No messages found.</p>
+  {% endif %}
+
+  <!-- Результаты поиска по пользователям -->
+  {% if users %}
+    <h4 style="text-align: center; font-family: Arial, sans-serif; font-size: 18px;">Users:</h4>
+    <ul style="list-style: none; padding: 0; margin: 0; width: 50%; margin: 0 auto;">
+      {% for user in users %}
+        <li style="background-color: #666; color: #53da6e; padding: 10px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); font-family: Arial, sans-serif; font-size: 14px;">{{ user.username }} - {{ user.email }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p style="text-align: center; font-family: Arial, sans-serif; font-size: 14px;">No users found.</p>
+  {% endif %}
+{% endif %}
+
+
+
+
+
 <div class="home-container" style="background-color: #333; color: #fff;">
   <div>
     <hr style="border-color: #555;" />
