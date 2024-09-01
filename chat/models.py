@@ -23,7 +23,10 @@ class GroupIs(models.Model):
 class Message(models.Model):
     group = models.ForeignKey(GroupIs, on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    body = models.TextField() 
+    body = models.TextField(blank=True, null=True) 
+    image = models.ImageField(upload_to='images/', blank=True, null=True)
+    video = models.FileField(upload_to='videos/', blank=True, null=True)
+    file = models.FileField(upload_to='files/', blank=True, null=True)  # Поле для любых файлов
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
     
@@ -33,7 +36,7 @@ class Message(models.Model):
         verbose_name_plural = "Messages"
     
     def __str__(self):
-        return f'{self.user.username}:{self.body}'
+        return f'{self.user.username}:{self.body if self.body else "Media Message"}'
 
 class MyUser(AbstractUser):
     pass
