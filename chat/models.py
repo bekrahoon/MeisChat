@@ -23,7 +23,7 @@ class GroupIs(models.Model):
 class Message(models.Model):
     group = models.ForeignKey(GroupIs, on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    body = models.TextField(blank=True, null=True) 
+    body = models.TextField() 
     image = models.ImageField(upload_to='images/', blank=True, null=True)
     video = models.FileField(upload_to='videos/', blank=True, null=True)
     file = models.FileField(upload_to='files/', blank=True, null=True)  # Поле для любых файлов

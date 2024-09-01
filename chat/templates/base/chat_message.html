@@ -5,33 +5,52 @@
   {% endif %}
   <small class="message-meta">{{ message.user }} {{ message.created | timesince }} ago</small>
   <p class="message-body">{{ message.body }}</p>
-  <hr />
+  
+  {% if message.image %}
+  <img src="{{ message.image.url }}" alt="Image" style="max-width: 200px; height: auto; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);" />
+  {% endif %}
+  
+  {% if message.video %}
+  <video controls style="max-width: 200px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);">
+      <source src="{{ message.video.url }}" type="video/mp4">
+      Your browser does not support the video tag.
+  </video>
+  {% endif %}
+  
+  {% if message.file %}
+  <a href="{{ message.file.url }}" download style="background-color: #4CAF50; color: #fff; padding: 10px; border-radius: 10px; text-decoration: none;">Download File</a>
+  {% endif %}
+  
+  <hr style="border-color: #fff; margin-bottom: 10px;" />
 </div>
 
 <style>
 .message {
   background-color: #444;
   color: #fff;
-  padding: 10px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  margin-bottom: 10px;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  margin-bottom: 20px;
 }
 
 .message-meta {
   color: #bbb;
-  font-size: 0.9em;
+  font-size: 1em;
+  font-weight: bold;
 }
 
 .message-body {
-  font-size: 1em;
-  color:white;
+  font-size: 1.2em;
+  color: white;
+  font-family: Arial, sans-serif;
 }
 
 .delete-link {
   color: #ff3737;
   text-decoration: none;
-  margin-left: 10px;
+  margin-left: 20px;
+  font-weight: bold;
 }
 
 .delete-link:hover {

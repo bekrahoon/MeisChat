@@ -126,14 +126,14 @@ def group(request, pk):
         message = Message.objects.create(
             user=request.user,
             group=group,
-            body=request.POST.get('body')
+            body=request.POST.get('body'),
+            image=request.FILES.get('image'),
+            video=request.FILES.get('video'),
+            file=request.FILES.get('file')  # Обработка любых файлов
         )
-        if message:
-            print("Сообщение успешно сохранено:", message.body)
-        else:
-            print("Ошибка при сохранении сообщения")
         group.participants.add(request.user)
         return redirect('group', pk=group.id)
+
 
 
     context = {'group':group, 'group_messages':group_messages,
