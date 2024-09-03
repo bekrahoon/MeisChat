@@ -1,21 +1,41 @@
 from django.shortcuts import get_object_or_404, render, redirect
-from django.http import  HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.forms import UserCreationForm
 from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import *
-from .forms import  *
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login, logout
 from .forms import *
-from django_otp import user_has_device
+from django.contrib.auth import authenticate, login, logout
 from django_otp.plugins.otp_totp.models import TOTPDevice
-from django_htmx.middleware import HtmxMiddleware
+from django.core.mail import send_mail
+from twilio.rest import Client
+from django.conf import settings
+import random
+
+def generate_otp():
+    return random.randint(100000, 999999)
+
+def send_otp_via_email(email, otp):
+    logger.debug(f"Sending OTP {otp} to email {email}")
+    subject = 'Your OTP Code'
+    message = f'Your OTP is {otp}'
+    from_email = settings.EMAIL_HOST_USER
+    recipient_list = [email]
+    send_mail(subject, message, from_email, recipient_list)
+
+def send_otp_via_sms(phone_number, otp):
+    logger.debug(f"Sending OTP {otp} to phone number {phone_number}")
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+    message = client.messages.create(
+        body=f'Your OTP is {otp}',
+        from_=settings.TWILIO_PHONE_NUMBER,
+        to=phone_number
+    )
+    return message.sid
 
 def loginPage(request):
     page = 'login'
-    
     
     if request.user.is_authenticated:
         return redirect('home')
@@ -24,27 +44,106 @@ def loginPage(request):
         form = CustomAuthenticationForm(data=request.POST)
         if form.is_valid():
             user = form.get_user()
-            if user_has_device(user):
-                otp_device = TOTPDevice.objects.get(user=user)
-                if otp_device.verify_token(request.POST.get('otp')):
-                    login(request, user)
-                    return redirect('home')
-                else:
-                    form.add_error(None, "Invalid OTP")
+            otp = generate_otp()
+            request.session['otp'] = otp
+
+            # Отправка OTP пользователю
+            if user.phone_number:
+                send_otp_via_sms(user.phone_number, otp)
+                messages.success(request, 'OTP sent to your phone.')
+            elif user.email:
+                send_otp_via_email(user.email, otp)
+                messages.success(request, 'OTP sent to your email.')
             else:
-                login(request, user)
-                return redirect('home')
+                messages.error(request, 'No contact information associated with this account.')
+
+            request.session['otp_user_id'] = user.id
+            
+            return redirect('verify_otp')
+        else:
+            messages.error(request, 'Invalid login credentials.')
     else:
         form = CustomAuthenticationForm()
-             
-    context = {'page':page, 'form': form}
-    return render(request,  'base/login_register.html', context)
+    
+    context = {'page': page, 'form': form}
+    return render(request, 'base/login.html', context)
 
 
 
-def logoutUser(request):
-    logout(request)
-    return redirect('home')
+def change_login(request):
+    # Очистка сессии для удаления OTP информации
+    request.session.pop('otp_user_id', None)
+    
+    # Перенаправление на страницу входа
+    return redirect('login')
+
+
+import logging
+from django.contrib.auth import login
+
+logger = logging.getLogger(__name__)
+
+def verify_otp(request):
+    if request.method == 'POST':
+        otp_input = request.POST.get('otp')
+        user_id = request.session.get('otp_user_id')
+        session_otp = request.session.get('otp')
+
+        logger.debug(f"User ID: {user_id}, Input OTP: {otp_input}, Session OTP: {session_otp}")
+
+        if not user_id:
+            messages.error(request, 'User session not found')
+            return redirect('login')
+
+        user = get_object_or_404(MyUser, id=user_id)
+
+        # Преобразуйте значения в строки перед сравнением
+        if session_otp and str(otp_input).strip() == str(session_otp).strip():
+            login(request, user)
+            request.session.pop('otp_user_id', None)
+            request.session.pop('otp', None)
+            messages.success(request, 'Successfully logged in')
+            return redirect('home')
+        else:
+            logger.error("Invalid OTP Error")
+            messages.error(request, 'Invalid OTP')
+            return redirect('verify_otp')
+
+    user_id = request.session.get('otp_user_id')
+    user = get_object_or_404(MyUser, id=user_id) if user_id else None
+    context = {'user': user}
+    return render(request, 'base/login.html', context)
+
+
+def resend_otp(request):
+    user_id = request.session.get('otp_user_id')
+    if not user_id:
+        messages.error(request, 'User session not found')
+        return redirect('login')
+
+    user = get_object_or_404(MyUser, id=user_id)
+    otp = generate_otp()  # Генерируем новый OTP
+    
+    # Преобразуйте OTP в строку перед сохранением в сессии
+    request.session['otp'] = str(otp)
+
+    if user.phone_number:
+        send_otp_via_sms(user.phone_number, otp)
+    elif user.email:
+        send_otp_via_email(user.email, otp)
+    else:
+        messages.error(request, 'No contact information associated with this account.')
+        return redirect('verify_otp')
+
+    logger.debug(f"New OTP: {otp} saved in session")
+    messages.success(request, 'OTP has been resent to your email or phone.')
+    return redirect('verify_otp')
+
+
+
+
+
+
 
 def registerPage(request):
     if request.method == 'POST':
@@ -55,9 +154,19 @@ def registerPage(request):
             return redirect('home')
     else:
         form = MyUserCreationForm()
-            
-    context  = {'form': form}
-    return render(request, 'base/login_register.html', context)
+
+    context = {'form': form}
+    return render(request, 'base/register.html', context)
+
+def logoutUser(request):
+    logout(request)
+    return redirect('home')
+
+
+
+
+
+
 
 
 def home(request):
@@ -191,12 +300,62 @@ def participants(request, pk):
     return render(request, 'base/participants.html', context)
 
 
+@login_required
 def userProfile(request, pk):
-    user = MyUser.objects.get(id=pk)
+    user = get_object_or_404(MyUser, id=pk)
+    
+    if request.method == 'POST':
+        if 'update_profile' in request.POST:
+            form = MyUserCreationForm(request.POST, instance=user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Profile updated successfully!')
+                return redirect('user_profile', pk=user.id)
+        elif 'send_sms' in request.POST:
+            otp = generate_otp()  # Генерация OTP, добавьте эту функцию, если она не определена
+            if user.phone_number:
+                send_otp_via_sms(user.phone_number, otp)
+                messages.success(request, 'SMS sent successfully!')
+            else:
+                messages.error(request, 'No phone number associated with this account.')
+            return redirect('user_profile', pk=user.id)
+    else:
+        form = MyUserCreationForm(instance=user)
+    
     groups = user.groupis_set.all()
     group_messages = user.message_set.all()
-    context = {'user':user, 'groups':groups, 'group_messages':group_messages}
-    return render(request, 'base/profile.html', context )
+    
+    context = {
+        'user': user,
+        'groups': groups,
+        'group_messages': group_messages,
+        'form': form
+    }
+    return render(request, 'base/profile.html', context)
+
+
+
+@login_required
+def profile_view(request, pk):
+    user = get_object_or_404(MyUser, pk=pk)
+    
+    if request.method == 'POST':
+        form = ProfileUpdateForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your profile has been updated!')
+            return redirect('user_profile', pk=user.pk)
+        else:
+            messages.error(request, 'Please correct the error below.')
+    else:
+        form = ProfileUpdateForm(instance=user)
+    
+    context = {
+        'user': user,
+        'form': form,
+    }
+    
+    return render(request, 'base/profile.html', context)
 
 
 
@@ -262,3 +421,5 @@ def deleteMessage(request, pk):
         message.delete() 
         return redirect('home')
     return render(request, "base/delete.html", {'obj':message})
+
+

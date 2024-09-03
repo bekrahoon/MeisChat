@@ -28,15 +28,24 @@ class MessageCreationForm(ModelForm):
             'body': '',  # Отключает отображение метки для поля body
         }
 
-    
 
 
-        
 class MyUserCreationForm(UserCreationForm):
+    phone_number = forms.CharField(max_length=15, required=False, help_text='Optional.')
+
     class Meta:
         model = MyUser
-        fields = ('username', 'email')
+        fields = ('username', 'email', 'phone_number')  
+
 
 class CustomAuthenticationForm(AuthenticationForm):
     # Здесь Meta не требуется, так как AuthenticationForm автоматически обрабатывает поля username и password.
     pass
+
+
+from django import forms
+from .models import MyUser 
+class ProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = MyUser
+        fields = ['username', 'email', 'phone_number'] 

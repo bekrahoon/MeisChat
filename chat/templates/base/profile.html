@@ -1,42 +1,72 @@
-{% extends "main.html" %} {% block content %}
+{% extends "main.html" %} 
+{% block content %}
+<div class="profile-container">
+  <div class="auth-form">
+    <h1>{{ user.username }}</h1>
+    <p>Email: {{ user.email }}</p>
+    <form action="{% url 'update_profile' user.pk %}" method="POST"> 
+      {% csrf_token %}
+      {{ form.as_p }}
+      <input type="submit" name="update_profile" value="Update Profile" class="btn btn-primary" />
+    </form>    
+    <form action="{% url 'update_profile' user.pk %}" method="POST" style="margin-top: 20px;">
+      {% csrf_token %}
+      <input type="hidden" name="send_sms" value="1" />
+      <button type="submit" class="btn btn-primary">Send OTP via SMS</button>
+    </form>
+    <div class="messages">
+      {% for message in messages %}
+        <div class="message {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
 <style>
   .profile-container {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 20px; /* Добавляет промежуток между колонками */
-    margin-top: 20px; /* Добавляет отступ сверху */
+    gap: 20px;
+    margin-top: 20px;
     justify-content: center;
   }
-
   .profile-container > div {
-    padding: 10px; /* Добавляет внутренние отступы */
-    border: 1px solid #ddd; /* Добавляет границу вокруг секций */
-    border-radius: 5px; /* Скругляет углы границы */
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
     width: 50%;
   }
-
   .profile-container h1 {
-    margin-bottom: 10px; /* Добавляет отступ снизу заголовка */
+    margin-bottom: 10px;
+  }
+  .auth-form {
+    text-align: center;
+    margin: 0 auto;
+    background-color: #333;
+    color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  }
+  .auth-form button, .auth-form input[type="submit"] {
+    background-color: #444;
+    border-color: #444;
+    color: #fff;
+  }
+  .messages {
+    margin-bottom: 20px;
+  }
+  .message {
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+  }
+  .message.success {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  .message.error {
+    background-color: #f8d7da;
+    color: #721c24;
   }
 </style>
-
-<div class="profile-container">
-  <div>
-    <h1>{{ user.username }}</h1>
-    <!-- Вы можете добавить другую информацию о пользователе здесь, если нужно -->
-    <p>Email: {{ user.email }}</p>
-  </div>
-
-  <div>
-    <h3>Groups</h3>
-    <ul>
-    {% include "base/feed_component.html" %}
-    </ul>
-  </div>
-
-  <div>
-    <h3>Recent Activities</h3>
-    {% include "base/activivty_componeit.html" %}
-  </div>
-</div>
 {% endblock %}

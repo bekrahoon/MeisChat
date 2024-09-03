@@ -3,6 +3,10 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django_otp.models import Device
 from django_otp.plugins.otp_totp.models import TOTPDevice
+from django_otp.models import Device
+from django.utils import timezone
+from datetime import timedelta
+
 
 class GroupIs(models.Model):
     host = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
@@ -26,7 +30,8 @@ class Message(models.Model):
     body = models.TextField() 
     image = models.ImageField(upload_to='images/', blank=True, null=True)
     video = models.FileField(upload_to='videos/', blank=True, null=True)
-    file = models.FileField(upload_to='files/', blank=True, null=True)  # Поле для любых файлов
+    file = models.FileField(upload_to='files/', blank=True, null=True)  
+    is_received = models.BooleanField(default=False)
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
     
@@ -39,10 +44,16 @@ class Message(models.Model):
         return f'{self.user.username}:{self.body if self.body else "Media Message"}'
 
 class MyUser(AbstractUser):
-    pass
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+
 
 class OTPDevice(Device):
-    pass
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self):
+        # OTP действителен в течение 10 минут
+        return timezone.now() < self.created_at + timedelta(minutes=10)
 
 # models.py
 

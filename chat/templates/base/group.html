@@ -11,9 +11,10 @@
   <div class="chat-layout" style="padding: 20px;">
     <div class="chat-header" style="background-color: #1a1a1a; color: #fff; padding: 10px;">
       <div>
-        <span id="user-status-{{ user.id }}">offline</span>
+        <!-- Статус пользователя -->
+        <span id="user-status-{{ user.id }}">{{ user_status }}</span>
         {{ user.username }}
-    </div>
+      </div>
     
       <h3>{{ group.name }}</h3>
       <p>{{ group.description }}</p>
@@ -29,23 +30,23 @@
     </div>
 
     <!-- Форма для отправки сообщений -->
-<div class="room__message" style="background-color: #2f2f2f; padding: 20px;">
-  <form id="message-form" action="" method="POST" enctype="multipart/form-data" style="margin-top: 20px; display: flex; flex-direction: row; align-items: center;">
-    {% csrf_token %}
-    <div style="display: flex; flex-direction: column; justify-content: space-between; margin-right: 10px;">
-      <div style="display: flex; flex-direction: row;">
-        <button type="button" id="upload-image-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px;">Image</button>
-        <button type="button" id="upload-video-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px; margin-left: 10px;">Video</button>
-        <button type="button" id="upload-file-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px; margin-left: 10px;">File</button>
-      </div>
-      <input type="file" id="image-input" name="image" accept="image/*" style="display: none;" />
-      <input type="file" id="video-input" name="video" accept="video/*" style="display: none;" />
-      <input type="file" id="file-input" name="file" accept="*/*" style="display: none;" />
+    <div class="room__message" style="background-color: #2f2f2f; padding: 20px;">
+      <form id="message-form" action="" method="POST" enctype="multipart/form-data" style="margin-top: 20px; display: flex; flex-direction: row; align-items: center;">
+        {% csrf_token %}
+        <div style="display: flex; flex-direction: column; justify-content: space-between; margin-right: 10px;">
+          <div style="display: flex; flex-direction: row;">
+            <button type="button" id="upload-image-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px;">Image</button>
+            <button type="button" id="upload-video-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px; margin-left: 10px;">Video</button>
+            <button type="button" id="upload-file-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px; margin-left: 10px;">File</button>
+          </div>
+          <input type="file" id="image-input" name="image" accept="image/*" style="display: none;" />
+          <input type="file" id="video-input" name="video" accept="video/*" style="display: none;" />
+          <input type="file" id="file-input" name="file" accept="*/*" style="display: none;" />
+        </div>
+        <textarea id="message-input" name="body" placeholder="Write your message here..." style="background-color: #4f4f4f; color: #fff; padding: 10px; width: 60%; height: 60px; border-radius: 10px;"></textarea>
+        <button type="button" id="send-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px; margin-left: 10px;">Send</button>
+      </form>
     </div>
-    <textarea id="message-input" name="body" placeholder="Write your message here..." style="background-color: #4f4f4f; color: #fff; padding: 10px; width: 60%; height: 100px; border-radius: 10px;"></textarea>
-    <button type="button" id="send-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px; margin-left: 10px;">Send</button>
-  </form>
-</div>
     
   </div>
 </div>
@@ -98,6 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const sendButton = document.getElementById('send-button');
   const messageForm = document.getElementById('message-form');
   const messageInput = document.getElementById('message-input');
+  const userStatusElement = document.getElementById('user-status-{{ user.id }}');
 
   // Открытие диалогового окна выбора изображений
   uploadImageButton.addEventListener('click', function() {

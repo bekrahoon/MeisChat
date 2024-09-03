@@ -1,0 +1,64 @@
+<div class="auth-form" style="text-align: center; margin: 0 auto; background-color: #333; color: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);">
+  <h2 style="color: #fff;">Login</h2>
+  
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="message {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  {% if request.session.otp_user_id %}
+    <!-- Подключаем шаблон для OTP-проверки -->
+<!-- templates/base/otp_verification.html -->
+<div class="container" style="max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+  <h2 style="text-align: center; margin-bottom: 20px;">OTP Verification</h2>
+  <form action="{% url 'verify_otp' %}" method="POST">
+    {% csrf_token %}
+    <p style="font-size: 16px; margin-bottom: 10px;">We have sent an OTP to: <strong>{{ user.email }}</strong>. Please enter it below:</p>
+    <input type="text" name="otp" placeholder="Enter OTP" required style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #555;">
+    <button type="submit" class="btn btn-primary" style="background-color: #444; border-color: #444; width: 100%; padding: 10px; margin-bottom: 10px;">Verify OTP</button>
+  </form>
+  
+  <!-- Форма для повторной отправки OTP -->
+  <form action="{% url 'resend_otp' %}" method="POST" style="margin-top: 10px;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-secondary" style="background-color: #666; border-color: #666; width: 100%; padding: 10px; margin-bottom: 10px;">Resend OTP</button>
+  </form>
+  
+  <!-- Кнопка для возврата на страницу входа -->
+  <form action="{% url 'change_login' %}" method="POST" style="margin-top: 10px;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-warning" style="background-color: #f0ad4e; border-color: #eea236; width: 100%; padding: 10px;">Change Login</button>
+  </form>
+</div>  {% else %}
+    <!-- Основная форма входа -->
+    <form action="{% url 'login' %}" method="POST">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn btn-primary" style="background-color: #444; border-color: #444;">Login</button>
+    </form>
+  {% endif %}
+  
+  <p style="color: #ccc;">Don't have an account? <a href="{% url 'register' %}" style="color: #fff;">Sign up</a></p>
+</div>
+
+<style>
+  .messages {
+    margin-bottom: 20px;
+  }
+  .message {
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+  }
+  .message.success {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  .message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+</style>
