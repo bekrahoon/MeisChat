@@ -9,42 +9,37 @@
   </div>
     
   <div class="chat-layout" style="padding: 20px;">
-    <div class="chat-header" style="background-color: #1a1a1a; color: #fff; padding: 10px;">
-      <div>
-        <!-- Статус пользователя -->
-        <span id="user-status-{{ user.id }}">{{ user_status }}</span>
-        {{ user.username }}
-      </div>
-    
+    <div class="chat-header" style="background-color: #1a1a1a; color: #fff; padding: 10px;">    
       <h3>{{ group.name }}</h3>
       <p>{{ group.description }}</p>
     </div>
 
     <!-- Прокручиваемая область с сообщениями -->
-    <div id="chat-messages" class="chat-messages" style="background-color: #3b3b3b; padding: 20px;">
+    <div id="chat_messages" class="chat-messages" style="background-color: #3b3b3b; padding: 20px;">
       <div id="chat_room" style="padding: 20px;">
-        {% for message in group_messages %} 
-        {% include "base/chat_message.html" %} 
+        {% for message in group_messages reversed %}
+          {% include "base/chat_message_p.html" %}
         {% endfor %}
       </div>
     </div>
 
     <!-- Форма для отправки сообщений -->
     <div class="room__message" style="background-color: #2f2f2f; padding: 20px;">
-      <form id="message-form" action="" method="POST" enctype="multipart/form-data" style="margin-top: 20px; display: flex; flex-direction: row; align-items: center;">
+      <form id="chat_message_form"
+          hx-ext="ws"
+          ws-connect="ws://127.0.0.1:8000/ws/group/{{ group.id }}/"
+          ws-send
+          _="on htmx:wsAfterSend reset() me">
         {% csrf_token %}
-        <div style="display: flex; flex-direction: column; justify-content: space-between; margin-right: 10px;">
-          <div style="display: flex; flex-direction: row;">
-            <button type="button" id="upload-image-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px;">Image</button>
-            <button type="button" id="upload-video-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px; margin-left: 10px;">Video</button>
-            <button type="button" id="upload-file-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px; margin-left: 10px;">File</button>
-          </div>
-          <input type="file" id="image-input" name="image" accept="image/*" style="display: none;" />
-          <input type="file" id="video-input" name="video" accept="video/*" style="display: none;" />
-          <input type="file" id="file-input" name="file" accept="*/*" style="display: none;" />
-        </div>
-        <textarea id="message-input" name="body" placeholder="Write your message here..." style="background-color: #4f4f4f; color: #fff; padding: 10px; width: 60%; height: 60px; border-radius: 10px;"></textarea>
-        <button type="button" id="send-button" style="background-color: #1a1a1a; color: #fff; padding: 10px; border-radius: 10px; margin-left: 10px;">Send</button>
+        {{ form }}
+      </form>
+      <form id="chat_file" enctype="multipart/form-data"
+          hx-target="#chat_messages"
+          hx-swap="beforeend"
+          _="on htmx:wsAfterSend reset() me">
+        {% csrf_token %}
+        <input type="file" name="file" id="id_file">
+        <button type="submit">Submit File</button>
       </form>
     </div>
     
@@ -72,7 +67,7 @@
   }
 
   .chat-messages {
-    height: 300px;
+    height: 500px;
     overflow-y: auto; /* Прокрутка для сообщений */
     padding: 20px;
   }
@@ -85,119 +80,260 @@
   .room__message {
     padding: 20px;
   }
+  .loading-indicator {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 10px;
+  }
+  .placeholder-image {
+    width: 100px;
+    height: 100px;
+    border: 1px solid #ddd;
+    margin-bottom: 10px;
+  }
 </style>
+{% endblock %}
 
 {% block javascript %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const uploadImageButton = document.getElementById('upload-image-button');
-  const uploadVideoButton = document.getElementById('upload-video-button');
-  const uploadFileButton = document.getElementById('upload-file-button');
-  const imageInput = document.getElementById('image-input');
-  const videoInput = document.getElementById('video-input');
-  const fileInput = document.getElementById('file-input');
-  const sendButton = document.getElementById('send-button');
-  const messageForm = document.getElementById('message-form');
-  const messageInput = document.getElementById('message-input');
-  const userStatusElement = document.getElementById('user-status-{{ user.id }}');
+  document.addEventListener('DOMContentLoaded', function() {
+    const groupId = '{{ group.id }}';
+    const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/group/' + groupId + '/');
+    let isFileUploading = false; // Инициализация флага
 
-  // Открытие диалогового окна выбора изображений
-  uploadImageButton.addEventListener('click', function() {
-    imageInput.click();
-  });
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        console.log('Received data:', data);
+  
+        const messagesContainer = document.querySelector('#chat_messages');
+        if (messagesContainer) {
+            if (data.type === 'chat_message') {
+                messagesContainer.insertAdjacentHTML('beforeend', data.html);
+            } else if (data.type === 'file_notification') {
+                const notificationMessage = `<div><strong>${data.user}:</strong> Отправил файл ${data.file_name}</div>`;
+                messagesContainer.insertAdjacentHTML('beforeend', notificationMessage);
+            } else if (data.type === 'file_uploaded') {
+                const fileMessage = `<div id="${data.file_id}"><strong>${data.user}:</strong> <img src="data:${data.file_type};base64,${data.file_base64}" alt="${data.file_name}"> <a href="${data.file_url}" target="_blank">Download ${data.file_name}</a></div>`;
+                messagesContainer.insertAdjacentHTML('beforeend', fileMessage);
+            }// Обработка подтверждения получения сообщения
+            else if (data.type === 'message_delivered') {
+              const messageId = e.data.message_id;
+              const status = e.data.status;
+              const messageElement = document.querySelector(`#message-${messageId}`);
+              if (messageElement) {
+                messageElement.dataset.read = status; // Update read attribute
+                updateMessageStatus(messageId, status); // Call updateMessageStatus function
+                messageElement.addEventListener('click', function() {
+                  fetch(`/update-message-status/${messageId}/`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRFToken': '{{ csrf_token }}'  // Добавляем CSRF токен
+                    },
+                    body: JSON.stringify({ read: true }),
+                  })
+                  .then((response) => {
+                    if (response.ok) {
+                      messageElement.dataset.read = true; // Update read attribute
+                      messageElement.classList.add('data-read');
+                      messageElement.dispatchEvent(new Event('change'));
+                      console.log(messageElement.getAttribute('data-read'));
+                      messageElement.classList.add('read');
+                    } else {
+                      console.error('Ошибка обновления статуса сообщения:', response.status);
+                    }
+                  })
+                  .catch((error) => {
+                    console.error('Ошибка обновления статуса сообщения:', error);
+                  });
+                });
+              }
+              scrollBottom(); // Scroll to the bottom after adding a new message
+          } 
+            scrollBottom(); // Прокручиваем вниз после добавления нового сообщения
+        }
+    };
+            // Обновляем статус сообщения
+            function updateMessageStatus(messageId, status) {
+              const messageElement = document.querySelector(`#message-${messageId}`);
+              if (messageElement) {
+                messageElement.setAttribute('data-read', status);
+                if (status) {
+                } else {
+                  const readStatusElement = messageElement.querySelector('p');
+                }
+              }
+            }
+            const messageElements = document.querySelectorAll('.message');
 
-  // Открытие диалогового окна выбора видео
-  uploadVideoButton.addEventListener('click', function() {
-    videoInput.click();
-  });
+            const observer = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                  const messageElement = entry.target;
+                  const messageId = messageElement.id.split('-')[1];
+                  
+                  fetch(`/update-message-status/${messageId}/`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRFToken': '{{ csrf_token }}'  // Добавляем CSRF токен
+                    },
+                    body: JSON.stringify({ read: true }),
+                  })
+                  .then((response) => {
+                    if (response.ok) {
+                      messageElement.dataset.read = true; // Обновляем статус прочтения
+                      messageElement.classList.add('read');
+                    } else {
+                      console.error('Ошибка обновления статуса сообщения:', response.status);
+                    }
+                  })
+                  .catch((error) => {
+                    console.error('Ошибка обновления статуса сообщения:', error);
+                  });
+                  
+                  // Останавливаем наблюдение за этим элементом
+                  observer.unobserve(messageElement);
+                }
+              });
+            });
+            
+            // Наблюдаем за каждым сообщением
+            messageElements.forEach((messageElement) => {
+              observer.observe(messageElement);
+            });
+            
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
 
-  // Открытие диалогового окна выбора других файлов
-  uploadFileButton.addEventListener('click', function() {
-    fileInput.click();
-  });
+    const messageForm = document.getElementById('chat_message_form');
+    messageForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(messageForm);
+        const message = {
+            type: 'chat_message',
+            body: formData.get('body') || '', // Обработка пустого тела сообщения
+            file_url: '',
+            file_name: ''
+        };
+        chatSocket.send(JSON.stringify(message));
+        messageForm.reset();
+    });
 
-  // Отправка формы при выборе изображений
-  imageInput.addEventListener('change', function() {
-    messageForm.submit();
-  });
+    const fileForm = document.getElementById('chat_file');
+    fileForm.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      if (isFileUploading) return; // Игнорируем повторную отправку
+  
+      const fileInput = document.getElementById('id_file');
+      if (!fileInput.files.length) { // Проверяем, выбран ли файл
+          alert('Пожалуйста, выберите файл');
+          return;
+      }
+  
+      const fileName = fileInput.files[0].name; // Имя файла
+      const fileId = new Date().getTime(); // Уникальный идентификатор
 
-  // Отправка формы при выборе видео
-  videoInput.addEventListener('change', function() {
-    messageForm.submit();
-  });
+        // Добавляем индикатор загрузки
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.innerHTML = `Загрузка файла ${fileName}...`;
+        loadingIndicator.className = 'loading-indicator';
+        const messagesContainer = document.querySelector('#chat_messages');
+        messagesContainer.insertAdjacentElement('beforeend', loadingIndicator);
 
-  // Отправка формы при выборе других файлов
-  fileInput.addEventListener('change', function() {
-    messageForm.submit();
-  });
+        const existingFile = document.querySelector(`[data-file-name="${fileName}"][data-file-id="${fileId}"]`);
 
-  // Отправка формы при нажатии на кнопку "Send"
-  sendButton.addEventListener('click', function() {
-    messageForm.submit();
-  });
+        if (existingFile) {
+            alert(`Файл с именем ${fileName} уже существует в чате`);
+            return;
+        }
 
-  // Отправка формы при нажатии Enter в поле ввода
-  messageInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { // Предотвращаем перенос строки и отправляем форму
-      e.preventDefault();
-      messageForm.submit();
+        isFileUploading = true;
+        const formData = new FormData(fileForm);
+        formData.append('file_id', fileId); // Добавляем уникальный идентификатор файла
+
+        fetch(`/group/${groupId}/file/upload/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(async data => {
+            console.log('File upload response:', data); // Логирование ответа от сервера
+            if (data.file_url) {
+                const fileContent = fileInput.files[0]; // Get the file content
+                const fileBase64 = await readFileAsBase64(fileContent); // Convert file to base64
+                const message = {
+                    type: 'file_uploaded',
+                    file_id: fileId,
+                    file_name: fileName,
+                    file_url: data.file_url,
+                    file_base64: fileBase64, // Send the base64-encoded file content
+                    user: '{{ user.username }}'
+                };
+                chatSocket.send(JSON.stringify(message)); // Отправка уведомления
+            } else {
+                console.error('File upload failed');
+                // Отправка уведомления об ошибке
+                const errorMessage = {
+                    type: 'error',
+                    message: 'Файл не был загружен'
+                };
+                chatSocket.send(JSON.stringify(errorMessage));
+            }
+        })
+        .catch(error => {
+            console.error('Error uploading file:', error);
+            // Отправка уведомления об ошибке
+            const errorMessage = {
+                type: 'error',
+                message: 'Ошибка при загрузке файла'
+            };
+            chatSocket.send(JSON.stringify(errorMessage));
+        })
+        .finally(() => {
+            // Удаляем индикатор загрузки
+            const loadingIndicator = document.querySelector('.loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
+            isFileUploading = false; // Сбрасываем флаг после завершения загрузки
+        });
+    });
+
+    // Helper function to convert file to base64
+    function readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                resolve(reader.result.split(',')[1]); // Возвращаем только base64-строку без типа данных
+            };
+            reader.onerror = () => {
+                reject(reader.error);
+            };
+            reader.readAsDataURL(file);
+        });
     }
-  });
 
-  // Обработка получения сообщений через WebSocket
-  const groupId = "{{ group.id }}";
-  const chatSocket = new WebSocket(
-      `ws://${window.location.host}/ws/chat/${groupId}/`
-  );
-
-  chatSocket.onmessage = function(e) {
-    const data = JSON.parse(e.data);
-    const message = data['message'];
-    const user = data['user'];
-    const created = data['created'];
-    const image = data['image']; // Обработка изображения
-    const video = data['video']; // Обработка видео
-    const file = data['file']; // Обработка файла
-
-    let messageHTML = `
-      <div class="message">
-        <small class="message-meta">${user} ${new Date(created).toLocaleTimeString()}</small>
-        <p class="message-body">${message}</p>
-        <hr />
-    `;
-
-    if (image) {
-      messageHTML += `<img src="${image}" alt="Image" style="max-width: 100%; height: auto;"/>`;
+    function scrollBottom(time = 0) {
+        setTimeout(function() {
+            const container = document.getElementById('chat_messages');
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }, time);
     }
 
-    if (video) {
-      messageHTML += `<video controls style="max-width: 100%; height: auto;"><source src="${video}" type="video/mp4">Your browser does not support the video tag.</video>`;
-    }
-
-    if (file) {
-      messageHTML += `<a href="${file}" download>Download file</a>`;
-    }
-
-    messageHTML += '</div>';
-
-    document.querySelector('#chat_room').insertAdjacentHTML('beforeend', messageHTML);
-    scrollToBottom();
-  };
-
-  chatSocket.onclose = function(e) {
-    console.error('Chat socket closed unexpectedly');
-  };
-
-  function scrollToBottom() {
-    const container = document.getElementById("chat_room");
-    if (container) {
-      container.scrollTop = container.scrollHeight - container.clientHeight;
-    }
-  }
-
-  scrollToBottom();
+    scrollBottom(100); // Прокрутка вниз при загрузке страницы
 });
-</script>
-{% endblock %}
 
-{% endblock %}
+</script>
+{% endblock javascript %}

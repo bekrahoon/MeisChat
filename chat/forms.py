@@ -3,10 +3,22 @@ from django.forms import ModelForm
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from .models import *
 
+
 class GroupIsForm(ModelForm):
+    participants = forms.ModelMultipleChoiceField(queryset=MyUser.objects.all(), widget=forms.CheckboxSelectMultiple(attrs={'style': 'display: flex; flex-direction: column; align-items: flex-start;'}))
     class Meta:
         model = GroupIs
-        exclude = ['host']  # Оставляем только exclude, fields не нужно
+        exclude = ['host']  
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            if field.label != 'Participants':
+                field.widget.attrs.update({
+                    'class': 'form-control',
+                    'placeholder': field.label
+                })
+
 
 class MessageCreationForm(ModelForm):
     class Meta:

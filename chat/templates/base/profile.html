@@ -1,9 +1,12 @@
-{% extends "main.html" %} 
+{% extends "main.html" %}
+
 {% block content %}
+
 <div class="profile-container">
   <div class="auth-form">
     <h1>{{ user.username }}</h1>
     <p>Email: {{ user.email }}</p>
+    {% if request.user.pk == user.pk %}
     <form action="{% url 'update_profile' user.pk %}" method="POST"> 
       {% csrf_token %}
       {{ form.as_p }}
@@ -14,15 +17,41 @@
       <input type="hidden" name="send_sms" value="1" />
       <button type="submit" class="btn btn-primary">Send OTP via SMS</button>
     </form>
+    {% endif %}
+    <hr>
+    <br>
+    <!--Groups-->
+    <h2>Groups:</h2>
+
+      {% for group in groups %}
+        <div class="message">{{ group.name }}</div>
+      {% endfor %}
+    <!-- Messages -->
+    <h2>Messages:</h2>
     <div class="messages">
-      {% for message in messages %}
+      {% for message in group_messages %}
         <div class="message {{ message.tags }}">{{ message }}</div>
       {% endfor %}
     </div>
   </div>
 </div>
+
 <style>
+  h1{
+    color:#fff;
+
+  }
+  li{
+    color:#fff;
+    
+  }
+  h2{
+    color:#fff;
+    padding: 10px 0 0 0 ;
+  }
   .profile-container {
+    height: 60%;
+
     display: grid;
     grid-template-columns: 1fr;
     gap: 20px;
@@ -54,6 +83,8 @@
   }
   .messages {
     margin-bottom: 20px;
+    overflow-y: auto; /* Прокрутка для сообщений */
+    height: 25%;
   }
   .message {
     padding: 10px;
@@ -67,6 +98,18 @@
   .message.error {
     background-color: #f8d7da;
     color: #721c24;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  ul li {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+  ul li:last-child {
+    border-bottom: none;
   }
 </style>
 {% endblock %}

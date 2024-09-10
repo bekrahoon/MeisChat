@@ -25,13 +25,11 @@ class GroupIs(models.Model):
         return self.name
 
 class Message(models.Model):
-    group = models.ForeignKey(GroupIs, on_delete=models.CASCADE)
+    group = models.ForeignKey(GroupIs,related_name="chat_messages", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     body = models.TextField() 
-    image = models.ImageField(upload_to='images/', blank=True, null=True)
-    video = models.FileField(upload_to='videos/', blank=True, null=True)
     file = models.FileField(upload_to='files/', blank=True, null=True)  
-    is_received = models.BooleanField(default=False)
+    read = models.BooleanField(default=False)
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
     

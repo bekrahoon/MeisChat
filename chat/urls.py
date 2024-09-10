@@ -29,6 +29,8 @@ urlpatterns = [
     path("update-group/<str:pk>/", views.updateGroup, name="update-group"),
     path("delete-group/<str:pk>/", views.deleteGroup, name="delete-group"),
     path("delete-message/<str:pk>/", views.deleteMessage, name="delete-message"),
+    path('update-message-status/<int:message_id>/', views.update_message_status, name='update_message_status'),
+    path('group/<int:pk>/file/upload/', views.chat_file_upload, name='chat_file_upload'),
 
     
     

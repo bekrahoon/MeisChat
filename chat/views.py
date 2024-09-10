@@ -1,17 +1,28 @@
+import os
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.forms import UserCreationForm
 from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from channels.layers import get_channel_layer
+from asgiref.sync import  async_to_sync
+from django.urls import reverse
 from .models import *
 from .forms import *
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required, permission_required
+# from .tasks import mark_message_as_received
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from django.core.mail import send_mail
 from twilio.rest import Client
 from django.conf import settings
 import random
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+
 
 def generate_otp():
     return random.randint(100000, 999999)
@@ -206,7 +217,7 @@ def home(request):
 
 
 
-
+@login_required
 def group(request, pk):    
     
     if request.user.is_authenticated !=  True:
@@ -228,20 +239,23 @@ def group(request, pk):
     
     
     group = GroupIs.objects.get(id=pk)
-    group_messages = group.message_set.all()
+    group_messages = group.chat_messages.order_by('-created')
     participants = group.participants.all()
+    form = MessageCreationForm()
+    
+    if request.htmx:
+        form = MessageCreationForm(request.POST)
+        if form.is_valid:
+            message = form.save(commit=False)
+            message.user = request.user
+            message.group = group
+            message.save()
+            context = {
+                'message':message,
+                'user':request.user
+            }
+            return render(request, 'base/chat_message_p.html', context)
 
-    if request.method == 'POST':
-        message = Message.objects.create(
-            user=request.user,
-            group=group,
-            body=request.POST.get('body'),
-            image=request.FILES.get('image'),
-            video=request.FILES.get('video'),
-            file=request.FILES.get('file')  # Обработка любых файлов
-        )
-        group.participants.add(request.user)
-        return redirect('group', pk=group.id)
 
 
 
@@ -249,10 +263,73 @@ def group(request, pk):
                'participants':participants,
                'groups':groups, 
                'group_count':group_count, 
-               'group_messages':group_messages,
-               'page':page}
+               'page':page,
+               'form':form}
     
     return render(request, 'base/group.html', context)
+
+
+
+
+
+@login_required
+def update_message_status(request, message_id):
+    if request.method == 'POST':
+        try:
+            message = Message.objects.get(id=message_id)
+            message.read = True
+            message.save()
+            return JsonResponse({'status': 'success'})
+        except Message.DoesNotExist:
+            return JsonResponse({'error': 'Message not found'}, status=404)
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+
+
+
+
+
+def chat_file_upload(request, pk):
+    if request.method == 'POST' and request.FILES:
+        try:
+            file = request.FILES['file']
+            file_name = file.name
+
+            # Создаем новое сообщение с файлом
+            message = Message.objects.create(
+                file=file,
+                user=request.user,
+                group_id=pk,
+            )
+
+            # Проверяем, был ли файл успешно загружен
+            if message.file:
+                # Отправка уведомления через WebSocket
+                channel_layer = get_channel_layer()
+                event = {
+                    'type': 'chat_file',
+                    'file_url': message.file.url,
+                    'file_name': file_name,
+                    'user': request.user.username
+                }
+                async_to_sync(channel_layer.group_send)(
+                    f"group_{pk}",
+                    event
+                )
+                return JsonResponse({'file_url': message.file.url, 'file_name': file_name})
+            else:
+                return JsonResponse({'error': 'Файл не был загружен'}, status=400)
+        except Exception as e:
+            # Логирование исключения и возврат ошибки
+            print(f"Error in file upload: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid request method or no file uploaded'}, status=400)
+
+
+
+
+
 
 def participants(request, pk):    
     
@@ -269,11 +346,8 @@ def participants(request, pk):
     group_messages = Message.objects.filter(
         Q(group__name__icontains = q)
         )
-    
-    
-    
     group = GroupIs.objects.get(id=pk)
-    group_messages = group.message_set.all()
+    group_messages = group.chat_messages.order_by('-created')
     participants = group.participants.all()
 
     if request.method == 'POST':
@@ -300,10 +374,23 @@ def participants(request, pk):
     return render(request, 'base/participants.html', context)
 
 
+
+
+def group_view(request, pk):
+    group = GroupIs.objects.get(pk=pk)
+    messages = Message.objects.filter(group=group).order_by('created')
+    context = {'group': group, 'messages': messages}
+    
+    return render(request, 'base/group.html', context) 
+
+
+
+
+
 @login_required
+@permission_required('auth.change_user')
 def userProfile(request, pk):
     user = get_object_or_404(MyUser, id=pk)
-    
     if request.method == 'POST':
         if 'update_profile' in request.POST:
             form = MyUserCreationForm(request.POST, instance=user)
@@ -323,7 +410,7 @@ def userProfile(request, pk):
         form = MyUserCreationForm(instance=user)
     
     groups = user.groupis_set.all()
-    group_messages = user.message_set.all()
+    group_messages = user.message_set.order_by('-created')
     
     context = {
         'user': user,
