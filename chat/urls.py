@@ -19,7 +19,8 @@ urlpatterns = [
     path('profile/<str:pk>/', views.userProfile, name="user-profile"),
     path('participants/<str:pk>/', views.participants, name="participants"),
     path('profile/update/<int:pk>/', views.profile_view, name='update_profile'), 
-    
+    path('suspended/', views.suspended_view, name='suspended'),  
+
     
     
     

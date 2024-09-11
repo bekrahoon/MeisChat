@@ -9,22 +9,22 @@ from asgiref.sync import sync_to_async
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.user = self.scope['user']
-        self.group_id = self.scope['url_route']['kwargs']['group_id']
-        self.group_name = f'chat_{self.group_id}'
-        
-        try:
-            self.group = await self.get_group(self.group_id)
-        except GroupIs.DoesNotExist:
-            await self.close()
-            return
-        
-        # Add user to group
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name
-        )
-        await self.accept()
+            self.user = self.scope['user']
+            self.group_id = self.scope['url_route']['kwargs']['group_id']
+            self.group_name = f'chat_{self.group_id}'
+            
+            try:
+                self.group = await self.get_group(self.group_id)
+            except GroupIs.DoesNotExist:
+                await self.close()
+                return
+            
+            # Add user to group
+            await self.channel_layer.group_add(
+                self.group_name,
+                self.channel_name
+            )
+            await self.accept()
 
     async def disconnect(self, close_code):
         # Remove user from group

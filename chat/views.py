@@ -20,6 +20,9 @@ from django.conf import settings
 import random
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.http import HttpResponseForbidden
+from .decorators import suspended_decorator
+
 
 
 
@@ -153,6 +156,13 @@ def resend_otp(request):
 
 
 
+def suspended_view(request):
+    return render(request, 'base/suspended.html', {
+        'message': "Ваш аккаунт был приостановлен. Свяжитесь с поддержкой для получения информации."
+    })
+
+
+
 
 
 
@@ -178,8 +188,7 @@ def logoutUser(request):
 
 
 
-
-
+@login_required
 def home(request):
     if not request.user.is_authenticated:
         return redirect('login')
@@ -209,7 +218,7 @@ def home(request):
         'groups': groups, 
         'group_count': group_count, 
         'group_messages': group_messages,
-        'users': users,  # Добавление найденных пользователей в контекст
+        'users': users,  
         'q': q  # Передача строки поиска в контекст для отображения в шаблоне
     }
     
@@ -217,6 +226,9 @@ def home(request):
 
 
 
+
+
+@suspended_decorator
 @login_required
 def group(request, pk):    
     
@@ -242,6 +254,8 @@ def group(request, pk):
     group_messages = group.chat_messages.order_by('-created')
     participants = group.participants.all()
     form = MessageCreationForm()
+    if request.user.is_suspended:
+        return HttpResponseForbidden("Ваш аккаунт приостановлен.")
     
     if request.htmx:
         form = MessageCreationForm(request.POST)
