@@ -1,16 +1,18 @@
 <div class="message" id="message-{{ message.id }}" data-notification-sent="{{ message.notification_sent }}" data-read="{{ message.read }}">
-  <small class="message-meta">
-    from @{{ message.user.username }} {{ message.created | timesince }} ago
-  </small>
+
   {% if file_name %}
   <div>
     <strong>{{ user.username }}:</strong> Отправил файл {{ file_name }}<p> (для того чтобы увидеть файл перезагрузите страницу!)</p>
   </div>
+  {% else %}
+  <small class="message-meta">
+    from @<a href="{% url "user-profile" message.user.id %}">{{ message.user.username }}</a>  {{ message.created | timesince }} ago
+  </small>
   {% endif %}
   {% if request.user == message.user %}
-  {% if message.read == True %}
-  <p style="font-size=8erm;">Сообщение прочитано!</p>
-  {% endif %}
+    {% if message.read == True %}
+      <p style="font-size=8erm;">Сообщение прочитано!</p>
+    {% endif %}
   {% endif %}
   {% if message.body %}
   <p class="message-body">{{ message.body }}</p>
@@ -28,7 +30,8 @@
       <audio controls>
         <source src="{{ message.file.url }}" type="audio/{{ extension|slice:"1:" }}">
         Your browser does not support the audio tag.
-      </audio>
+      {% elif extension == ".pdf" %}
+      <a href="{{ message.file.url }}" target="_blank" class="download-link">View PDF</a>
       {% else %}
       <a href="{{ message.file.url }}" download class="download-link">Download file</a>
       {% endif %}
@@ -55,7 +58,11 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
 }
+a{
+  
+  color: #666;
 
+}
 .message-meta {
   color: #666;
   font-size: 1em;
@@ -88,7 +95,7 @@
 
 .media-container img,
 .media-container video {
-  max-width: 100%;
+  max-width: 45%;
   height: auto;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);

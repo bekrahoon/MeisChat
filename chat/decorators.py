@@ -6,3 +6,12 @@ def suspended_decorator(view_func):
             return redirect('suspended')
         return view_func(request, *args, **kwargs)
     return wrapper
+
+
+
+
+
+
+
+
+

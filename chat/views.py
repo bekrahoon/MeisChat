@@ -18,15 +18,10 @@ from django.core.mail import send_mail
 from twilio.rest import Client
 from django.conf import settings
 import random
-from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.http import HttpResponseForbidden
 from .decorators import suspended_decorator
-
-
-
-
-
+    
 def generate_otp():
     return random.randint(100000, 999999)
 
@@ -401,8 +396,8 @@ def group_view(request, pk):
 
 
 
-@login_required
-@permission_required('auth.change_user')
+# @login_required
+# @permission_required('auth.change_user')
 def userProfile(request, pk):
     user = get_object_or_404(MyUser, id=pk)
     if request.method == 'POST':
