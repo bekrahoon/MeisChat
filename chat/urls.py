@@ -18,11 +18,9 @@ urlpatterns = [
     path('group/<str:pk>/', views.group, name="group"),
     path('profile/<str:pk>/', views.userProfile, name="user-profile"),
     path('participants/<str:pk>/', views.participants, name="participants"),
-    path('profile/update/<int:pk>/', views.profile_view, name='update_profile'), 
+    path('profile/update/<int:pk>/', views.profile_update, name='update_profile'), 
     path('suspended/', views.suspended_view, name='suspended'),  
 
-    
-    
     
     
 
@@ -34,6 +32,10 @@ urlpatterns = [
     path('group/<int:pk>/file/upload/', views.chat_file_upload, name='chat_file_upload'),
 
     
+    
+    path('firebase-messaging-sw.js',views.showFirebaseJS,name="show_firebase_js"),
+    path('save-fcm-token/', views.save_fcm_token, name='save_fcm_token'),  # Маршрут для сохранения FCM токена
+
     
 ]
 

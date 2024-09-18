@@ -1,11 +1,39 @@
 import json
 import logging
-from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+
 from .models import Message, GroupIs
 from asgiref.sync import sync_to_async
+
+
+import firebase_admin
+from firebase_admin import credentials, messaging
+
+# Инициализация Firebase
+if not firebase_admin._apps:
+    cred = credentials.Certificate('chat-1a046-firebase-adminsdk-qm11a-66e7a5a6db.json')
+    firebase_admin.initialize_app(cred)
+
+async def send_firebase_notification(token, title, body):
+    message = messaging.Message(
+        notification=messaging.Notification(
+            title=title,
+            body=body,
+        ),
+        token=token,
+        webpush=messaging.WebpushConfig(
+            notification=messaging.WebpushNotification(
+                icon="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSzJh1CsHFfi4c7ws2wVzarUi_A4CPo-fkCLw&s",
+                image="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUQFn0-lTsoToECguElP_8rMAYKnN6Fo5kUA&s"
+            )
+        )
+    )
+    response = messaging.send(message)
+    return response
+
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -37,6 +65,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         text_data_json = json.loads(text_data)
         body = text_data_json.get('body', '')
         file_url = text_data_json.get('file_url', '')
+        user_token = text_data_json.get('user_token', '')  # Получите токен пользователя для уведомления
+
         
         if not body and not file_url:
             return
@@ -52,6 +82,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'user': self.user
             }
             html = await sync_to_async(render_to_string)("base/chat_message_p.html", context=context)
+            
+            
+            # Отправка уведомления в Firebase
+            if user_token:
+                await send_firebase_notification(
+                    token=user_token,
+                    title=f"New file from {self.user.username}",
+                    body=f"{file_name} has been uploaded."
+                )
             
             # Отправка уведомления в группу
             await self.channel_layer.group_send(
@@ -122,17 +161,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'message_id': message.id,
                 'status': 'delivered'
             }))
+        
             
-    async def file_notification(self, event):
-        try:
-            html = event['html']
-            await self.send(text_data=json.dumps({
-                'type': 'file_notification',
-                'html': html
-            }))
-        except Exception as e:
-            logging.error(f"Error sending file notification: {e}")
-            return 
+    
         
     async def chat_message(self, event):
         html = event['html']
@@ -152,3 +183,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return Message.objects.create(body=body, file=file_url, user=self.user, group=self.group)
         else:
             return Message.objects.create(body=body, user=self.user, group=self.group)
+
+
+
+    @sync_to_async
+    def get_group_participants(self, group):
+        return list(group.participants.all())
+    
+    
+
+
+

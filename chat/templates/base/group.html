@@ -98,7 +98,15 @@
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const groupId = '{{ group.id }}';
-    const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/group/' + groupId + '/');
+    
+    //const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/group/' + groupId + '/');
+    
+    //const token = '{{ request.session.csrf_token }}';
+    //const chatSocket = new WebSocket(`ws://${window.location.host}/ws/group/${groupId}/?token=${token}`);
+    
+    const token = localStorage.getItem('token');
+    const chatSocket = new WebSocket(`ws://${window.location.host}/ws/group/${groupId}/?token=${token}`);
+
     let isFileUploading = false; // Инициализация флага
 
     chatSocket.onmessage = function(e) {

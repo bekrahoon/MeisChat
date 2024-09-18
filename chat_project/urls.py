@@ -8,6 +8,7 @@ from chat.views import *
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('chat.urls')),
-    path('api/', include('chat.api.urls'))
+    path('api/', include('chat.api.urls')),
+    path('webpush/', include('webpush.urls')),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
