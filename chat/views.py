@@ -1,6 +1,6 @@
 import os
 from django.shortcuts import get_object_or_404, render, redirect
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.contrib.auth.forms import UserCreationForm
 from django.db.models import Q
 from django.contrib import messages
@@ -207,9 +207,10 @@ def home(request):
     
     # Поиск по группам
     groups = GroupIs.objects.filter(
-        Q(name__icontains=q) |
-        Q(description__icontains=q)
-    )
+    Q(name__icontains=q) | Q(description__icontains=q),
+    Q(participants__id=request.user.id) | Q(host=request.user)
+).distinct()
+    
     
     group_count = groups.count()
 
@@ -237,8 +238,6 @@ def home(request):
 
 
 
-
-
 @suspended_decorator
 @login_required
 def group(request, pk):    
@@ -250,24 +249,38 @@ def group(request, pk):
     
     q = request.GET.get('q') if request.GET.get('q') != None else ''
     groups = GroupIs.objects.filter(
-            Q(name__icontains=q) |
-            Q(description__icontains=q) 
-    )
+    Q(name__icontains=q) | Q(description__icontains=q),
+    Q(participants__id=request.user.id) | Q(host=request.user)
+).distinct()
     
     group_count = groups.count()
     group_messages = Message.objects.filter(
         Q(group__name__icontains = q)
         )
-    
+    users = MyUser.objects.filter(
+        Q(username__icontains=q) |
+        Q(email__icontains=q)
+    )
     
     
     group = GroupIs.objects.get(id=pk)
+    # if request.user not in group.participants.all() and request.user != group.host:
+    #     return HttpResponseForbidden("Вы не состоите в этой группе")
     group_messages = group.chat_messages.order_by('-created')
     participants = group.participants.all()
     form = MessageCreationForm()
     if request.user.is_suspended:
         return HttpResponseForbidden("Ваш аккаунт приостановлен.")
     
+    other_user  = None
+    if group.is_private:
+        if  request.user not in group.members.all():
+            raise Http404()
+        for  member in group.members.all():
+            if member != request.user:
+                other_user = member
+                break
+
     if request.htmx:
         form = MessageCreationForm(request.POST)
         if form.is_valid:
@@ -290,9 +303,34 @@ def group(request, pk):
                'groups':groups, 
                'group_count':group_count, 
                'page':page,
-               'form':form}
+               'form':form,
+               'other_user':other_user,
+               'users':users,
+               'pk':pk}
     
     return render(request, 'base/group.html', context)
+
+@login_required
+def get_or_create_chat(request, pk):
+    if request.user.id == pk:
+        return redirect('home')
+    
+    other_user = MyUser.objects.get(pk=pk)
+    
+    # Поиск существующего чата
+    chat = GroupIs.objects.filter(
+        is_private=True,
+        members=other_user
+    ).filter(
+        members=request.user
+    ).first()  # Получаем первый подходящий чат, если он есть
+    
+    # Если чат не найден, создаем новый
+    if chat is None:
+        chat = GroupIs.objects.create(is_private=True)
+        chat.members.add(other_user, request.user)
+    
+    return redirect('group', chat.id)
 
 
 
@@ -364,9 +402,9 @@ def participants(request, pk):
     
     q = request.GET.get('q') if request.GET.get('q') != None else ''
     groups = GroupIs.objects.filter(
-            Q(name__icontains=q) |
-            Q(description__icontains=q) 
-    )
+    Q(name__icontains=q) | Q(description__icontains=q),
+    Q(participants__id=request.user.id) | Q(host=request.user)
+).distinct()
     
     group_count = groups.count()
     group_messages = Message.objects.filter(
@@ -550,6 +588,7 @@ def save_fcm_token(request):
             return JsonResponse({'status': 'error', 'message': 'User not authenticated'}, status=401)
         
         user = get_object_or_404(MyUser, id=request.user.id)
+        
         user.fcm_token = token
         user.save()
         print(f"Token saved for user: {user.username}")
@@ -644,11 +683,21 @@ def notify_users(sender, instance, created, **kwargs):
         users = group.participants.all()  # Это QuerySet
         user_tokens = users.values_list('fcm_token', flat=True)  # Преобразование QuerySet в список
         
-        for token in user_tokens:
+        for token in set(user_tokens):
             if token:
                 send_notification(token, 'New Message', f'New message from {instance.user.username}')
 
-
+@receiver(post_save, sender=Message)
+def notify_users(sender, instance, created, **kwargs):
+    if created:
+        # Получение всех пользователей группы
+        group = instance.group
+        users = group.members.all()  # Это QuerySet
+        user_tokens = users.values_list('fcm_token', flat=True)  # Преобразование QuerySet в список
+        
+        for token in set(user_tokens):
+            if token:
+                send_notification(token, 'New Message', f'New message from {instance.user.username}')
 
 
 

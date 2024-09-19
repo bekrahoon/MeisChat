@@ -21,6 +21,14 @@ urlpatterns = [
     path('profile/update/<int:pk>/', views.profile_update, name='update_profile'), 
     path('suspended/', views.suspended_view, name='suspended'),  
 
+
+
+    path('chat/<int:pk>/', views.get_or_create_chat, name='start-chat'),
+    path('chat/room/<int:pk>/', views.group, name='chatrooms'),
+    
+    
+    
+    
     
     
 
@@ -30,6 +38,7 @@ urlpatterns = [
     path("delete-message/<str:pk>/", views.deleteMessage, name="delete-message"),
     path('update-message-status/<int:message_id>/', views.update_message_status, name='update_message_status'),
     path('group/<int:pk>/file/upload/', views.chat_file_upload, name='chat_file_upload'),
+
 
     
     

@@ -10,11 +10,14 @@ from datetime import timedelta
 
 class GroupIs(models.Model):
     host = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    name = models.CharField(max_length=200, unique=True)
+    name = models.CharField(max_length=200)
     description = models.TextField(null=True, blank=True)
     participants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='participants', blank=True)
+    members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name= 'chat_groups', blank=True)
+    is_private = models.BooleanField(default=False)
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
+    
     
     class Meta:
         ordering = ['-updated', '-created']
@@ -66,3 +69,10 @@ class UserStatus(models.Model):
 
     def __str__(self):
         return f"{self.user.username}: {self.status}"
+
+
+
+#       source newenv/Scripts/activate
+#       py manage.py runserver
+#       py manage.py makemigrations
+#       py manage.py migrate
