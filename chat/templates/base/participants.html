@@ -1,14 +1,18 @@
 {% extends "main.html" %}
 {% block content %}
-    <div class="participants-list" style="background-color: #444; color: #fff; padding: 5px; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.3); width: 40%; margin: 0 auto;">
-      <h3 style="text-align: center; color: #3ed37c;">Participants</h3>
-      <hr style="border-color: #777;" />
-      {% if participants %} {% for user in participants %}
-      <div class="participant" style="text-align: center;">
-        <p><a href="{% url 'user-profile' user.id %}" style="color: #9fdefe;">{{ user.username }}</a></p>
-      </div>
-      {% endfor %} {% else %}
-      <p style="text-align: center; color: #999;">No participants yet.</p>
-    {% endif %}
-  </div>
+    <div class="participants-list" style="background-color: #1e1e1e; color: #e0e0e0; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4); width: 60%; margin: 40px auto; max-width: 800px;">
+        <h3 style="text-align: center; color: #43d17c; font-family: 'Poppins', sans-serif; font-size: 24px; margin-bottom: 20px;">Participants</h3>
+        <hr style="border-color: #555; margin-bottom: 20px;" />
+        {% if participants %}
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-around;">
+                {% for user in participants %}
+                    <div class="participant" style="background-color: #2c2c2c; padding: 15px; border-radius: 8px; margin: 10px; width: 150px; text-align: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); transition: transform 0.3s ease;">
+                        <p style="margin: 0;"><a href="{% url 'user-profile' user.id %}" style="color: #9fdefe; font-weight: 500; font-family: 'Poppins', sans-serif; text-decoration: none;">{{ user.username }}</a></p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="text-align: center; color: #777; font-family: 'Poppins', sans-serif;">No participants yet.</p>
+        {% endif %}
+    </div>
 {% endblock %}

@@ -6,7 +6,10 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 from django_otp.models import Device
 from django.utils import timezone
 from datetime import timedelta
+from cryptography.fernet import Fernet
 
+# Инициализация Fernet для шифрования
+ENCRYPT_KEY = b'ESx4HIzu4jbUVBBRDaiPBcFPO-vG7GoPKF0ueG_PKXk='
 
 class GroupIs(models.Model):
     host = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
@@ -30,11 +33,18 @@ class GroupIs(models.Model):
 class Message(models.Model):
     group = models.ForeignKey(GroupIs,related_name="chat_messages", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    body = models.TextField() 
+    body = models.TextField(max_length=1024) 
     file = models.FileField(upload_to='files/', blank=True, null=True)  
     read = models.BooleanField(default=False)
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
+    
+    @property
+    def body_decrypted(self):
+        f = Fernet(ENCRYPT_KEY)
+        message_decrypted = f.decrypt(self.body)
+        message_decoded  = message_decrypted.decode('utf-8')
+        return message_decoded
     
     class Meta:
         ordering = ['-updated', '-created']
@@ -48,7 +58,7 @@ class MyUser(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     is_suspended = models.BooleanField(default=False)
     fcm_token = models.CharField(max_length=255, blank=True, null=True)
-    
+
 
 
 class OTPDevice(Device):
@@ -72,7 +82,17 @@ class UserStatus(models.Model):
 
 
 
-#       source newenv/Scripts/activate
-#       py manage.py runserver
-#       py manage.py makemigrations
-#       py manage.py migrate
+
+class Notification(models.Model):
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    user = models.ForeignKey(MyUser, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('message', 'user')  # Ensure one notification per message per user
+
+
+
+
+
+

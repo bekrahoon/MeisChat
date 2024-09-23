@@ -8,7 +8,7 @@ class GroupIsForm(ModelForm):
     participants = forms.ModelMultipleChoiceField(queryset=MyUser.objects.all(), widget=forms.CheckboxSelectMultiple(attrs={'style': 'display: flex; flex-direction: column; align-items: flex-start;'}))
     class Meta:
         model = GroupIs
-        exclude = ['host']  
+        exclude = ['host','members', 'is_private']  
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

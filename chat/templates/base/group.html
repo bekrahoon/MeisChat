@@ -12,8 +12,11 @@
 
     {% if other_user %}
       <div class="chat-header" style="background-color: #2b2b2b; color: #e0e0e0; padding: 15px; border-radius: 10px;">    
-        <span style="font-size: 18px; font-weight: 500;">{{ other_user.profile.name }}</span>
-        <span style="color: #79b6f2; font-size: 16px;">@{{ other_user.username }}</span>
+        <a href="{% url "user-profile"  other_user.id %}" style="color: #e0e0e0;">
+
+          <span style="font-size: 18px; font-weight: 500;">{{ other_user.profile.name }}</span>
+          <span style="color: #79b6f2; font-size: 16px;">@{{ other_user.username }}</span>
+        </a>
       </div>
     {% else %}
       <div class="chat-header" style="background-color: #2b2b2b; color: #e0e0e0; padding: 15px; border-radius: 10px;">    
@@ -194,43 +197,45 @@
               }
             }
             const messageElements = document.querySelectorAll('.message');
-
             const observer = new IntersectionObserver((entries) => {
               entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                  const messageElement = entry.target;
-                  const messageId = messageElement.id.split('-')[1];
-                  
-                  fetch(`/update-message-status/${messageId}/`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'X-CSRFToken': '{{ csrf_token }}'  // Добавляем CSRF токен
-                    },
-                    body: JSON.stringify({ read: true }),
-                  })
-                  .then((response) => {
-                    if (response.ok) {
-                      messageElement.dataset.read = true; // Обновляем статус прочтения
-                      messageElement.classList.add('read');
-                    } else {
-                      console.error('Ошибка обновления статуса сообщения:', response.status);
-                    }
-                  })
-                  .catch((error) => {
-                    console.error('Ошибка обновления статуса сообщения:', error);
-                  });
-                  
-                  // Останавливаем наблюдение за этим элементом
-                  observer.unobserve(messageElement);
-                }
+                  if (entry.isIntersecting) {
+                      const messageElement = entry.target;
+                      const messageId = messageElement.id.split('-')[1];
+                      
+                      // Отправьте запрос на сервер для обновления статуса сообщения
+                      fetch(`/update-message-status/${messageId}/`, {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/json',
+                              'X-CSRFToken': '{{ csrf_token }}'
+                          },
+                          body: JSON.stringify({ read: true }),
+                      })
+                      .then((response) => {
+                          if (response.ok) {
+                              messageElement.dataset.read = true; // Обновляем статус прочтения
+                              messageElement.classList.add('read');
+                          } else {
+                              console.error('Ошибка обновления статуса сообщения:', response.status);
+                          }
+                      })
+                      .catch((error) => {
+                          console.error('Ошибка обновления статуса сообщения:', error);
+                      });
+                      
+                      // Остановите наблюдение за этим элементом, чтобы не обновлять статус повторно
+                      observer.unobserve(messageElement);
+                  }
               });
-            });
-            
-            // Наблюдаем за каждым сообщением
-            messageElements.forEach((messageElement) => {
+          });
+          
+          // Наблюдаем за каждым сообщением
+          messageElements.forEach((messageElement) => {
               observer.observe(messageElement);
-            });
+          });
+          
+          
             
     chatSocket.onclose = function(e) {
         console.error('Chat socket closed unexpectedly');
@@ -362,7 +367,20 @@
     }
 
     scrollBottom(100); // Прокрутка вниз при загрузке страницы
-});
+    });
+    document.addEventListener('DOMContentLoaded', () => {
+      const audioElements = document.querySelectorAll('audio');
 
+      audioElements.forEach(audio => {
+          audio.addEventListener('play', () => {
+              audioElements.forEach(otherAudio => {
+                  if (otherAudio !== audio) {
+                      otherAudio.pause();
+                      otherAudio.currentTime = 0; // Сбрасываем на начало, если нужно
+                  }
+              });
+          });
+      });
+    }); 
 </script>
 {% endblock javascript %}

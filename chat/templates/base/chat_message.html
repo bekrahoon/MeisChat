@@ -11,11 +11,16 @@
   {% endif %}
   {% if request.user == message.user %}
     {% if message.read == True %}
-      <p style="font-size=8erm;">Сообщение прочитано!</p>
+      <p style="font-size=8erm;">Message recieved!</p>
     {% endif %}
   {% endif %}
-  {% if message.body %}
-  <p class="message-body">{{ message.body }}</p>
+  {% if request.user == message.user and message.id %}
+  <a class="delete-btn" href="{% url 'delete-message' message.id %}" title="Delete message">
+    Delete
+  </a>
+{% endif %}
+  {% if message.body_decrypted %}
+  <p class="message-body" >{{ message.body_decrypted }}</p>
   {% elif message.file %}
   <div class="media-container" id="file-{{ message.id }}">
     {% with extension=message.file.name|slice:"-4:" %}
@@ -82,29 +87,19 @@
     font-family: Arial, sans-serif;
   }
 
-  .delete-message-button {
-    color: #e74c3c;
-    text-decoration: none;
-    margin-left: 20px;
-    font-weight: bold;
-  }
-
-  .delete-message-button:hover {
-    text-decoration: underline;
-  }
-
   .media-container {
     margin: 10px 0;
-    max-width: 60%;
   }
-
+  
   .media-container img,
   .media-container video {
-    max-width: 100%;
     height: auto;
     border-radius: 8px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    max-width: 25%; /* Уменьшаем ширину до 20% */
+
   }
+  
 
   .download-link {
     display: inline-block;
@@ -123,10 +118,62 @@
     color: #ffffff;
   }
 
-  audio {
-    width: 100%;
-    margin: 10px 0;
-    border-radius: 8px;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  .delete-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: #ff4d4d; /* Яркий красный фон для кнопки */
+    color: white; /* Белый текст */
+    padding: 4px 8px; /* Меньшие отступы для маленькой кнопки */
+    border-radius: 3px; /* Закругленные углы */
+    text-decoration: none; /* Убрать подчеркивание */
+    font-size: 0.9em; /* Меньший шрифт */
+    transition: background-color 0.3s, transform 0.2s; /* Плавный переход при наведении */
   }
+  
+  .delete-btn:hover {
+    background-color: #ff1a1a; /* Темнее при наведении */
+    transform: scale(1.05); /* Увеличение при наведении */
+  }
+  
+  audio {
+    width: 50%; 
+    margin: 10px 0;
+    border-radius: 5px; /* Закругленные углы */
+    background-color: #222; /* Темный фон для аудио */
+    padding: 8px; /* Отступы для комфорта */
+    border: 1px solid #444; /* Граница для аудио */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Легкая тень */
+  }
+  
+  audio::-webkit-media-controls {
+    background-color: #333; /* Темный фон для элементов управления */
+    border-radius: 5px; /* Закругленные углы */
+  }
+  
+  audio::-webkit-media-controls-panel {
+    background-color: #333; /* Фон панели управления */
+    border-radius: 5px; /* Закругленные углы */
+  }
+  
+  audio::-webkit-media-controls-play-button,
+  audio::-webkit-media-controls-volume-slider,
+  audio::-webkit-media-controls-mute-button {
+    background-color: #1abc9c; /* Цвет кнопок */
+    border-radius: 5px; /* Закругленные углы */
+  }
+  
+  audio::-webkit-media-controls-volume-slider {
+    cursor: pointer; /* Указатель при наведении */
+  }
+  
+  /* Дополнительный стиль для аудио, если необходимо */
+  audio:focus {
+    outline: none; /* Убираем обводку при фокусе */
+    box-shadow: 0 0 10px rgba(26, 188, 156, 0.5); /* Тень при фокусе */
+  }
+  
+  
 </style>
+
+
+

@@ -8,7 +8,7 @@
             </small>
             <small>replied to "{{ message.group }}"</small>
         </div>
-        <p class="message-body">{{ message }}</p>
+        <p class="message-body">{{ message.body_decrypted }}</p>
         {% if request.user == message.user %}
             <a class="delete-btn" href="{% url "delete-message" message.id %}">Delete</a>
         {% endif %}

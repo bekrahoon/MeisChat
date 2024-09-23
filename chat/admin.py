@@ -20,7 +20,7 @@ class MessageAdmin(ModelAdmin):
     list_display = ('group', 'user', 'body', 'read', 'updated', 'created')
     list_filter = ('created', 'group')
     search_fields = ('body', 'user__username', 'group__name')
-
+    readonly_fields = ('group', 'user', 'body', 'file', 'read', 'updated', 'created')
 
 
 @admin.register(MyUser)

@@ -32,8 +32,9 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db import IntegrityError
 
+from cryptography.fernet import Fernet
 
-
+# f = Fernet(settings.ENCRYPT_KEY)
     
 def generate_otp():
     return random.randint(100000, 999999)
@@ -264,11 +265,8 @@ def group(request, pk):
     
     
     group = GroupIs.objects.get(id=pk)
-    # if request.user not in group.participants.all() and request.user != group.host:
-    #     return HttpResponseForbidden("Вы не состоите в этой группе")
     group_messages = group.chat_messages.order_by('-created')
     participants = group.participants.all()
-    form = MessageCreationForm()
     if request.user.is_suspended:
         return HttpResponseForbidden("Ваш аккаунт приостановлен.")
     
@@ -280,11 +278,17 @@ def group(request, pk):
             if member != request.user:
                 other_user = member
                 break
-
+            
+    
+    
+    form = MessageCreationForm()
+    
     if request.htmx:
         form = MessageCreationForm(request.POST)
         if form.is_valid:
             message = form.save(commit=False)
+
+                    
             message.user = request.user
             message.group = group
             message.save()
@@ -560,16 +564,25 @@ def deleteGroup(request, pk):
     return render(request, "base/delete.html", {'obj':group})
 
 
-@login_required(login_url = 'login')
+from django.http import HttpResponseRedirect
+
+@login_required(login_url='login')
 def deleteMessage(request, pk):
     message = Message.objects.get(id=pk)
+    
     if request.user != message.user:
         return HttpResponse('You are not allowed here!!')
     
     if request.method == 'POST':
-        message.delete() 
-        return redirect('home')
-    return render(request, "base/delete.html", {'obj':message})
+        message.delete()
+        
+        # Получаем URL для редиректа из формы (или перенаправляем на главную, если его нет)
+        next_url = request.POST.get('next', 'home')
+        return redirect(next_url)
+    
+    # Передаём реферер в форму для дальнейшего использования
+    return render(request, "base/delete.html", {'obj': message, 'next': request.META.get('HTTP_REFERER', 'home')})
+
 
 
 
@@ -610,27 +623,31 @@ scoped_credentials.refresh(request)
 access_token = scoped_credentials.token  # Токен доступа
 
 
-def send_notification(token, title, body):
+
+def send_notification(token, title, body, click_action_url=None):
     url = "https://fcm.googleapis.com/v1/projects/chat-1a046/messages:send"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
     
-    payload = {
-        "message": {
-            "token": token,
+    message = {
+        "token": token,
+        "notification": {
+            "title": title,
+            "body": body
+        },
+        "webpush": {
             "notification": {
-                "title": title,
-                "body": body
-            },
-            "webpush": {
-                "notification": {
-                    "icon": "https://cdn-icons-png.flaticon.com/512/5356/5356355.png",
-                    "image": "https://img.freepik.com/free-photo/reminder-popup-bell-notification-alert-or-alarm-icon-sign-or-symbol-for-application-website-ui-on-purple-background-3d-rendering-illustration_56104-1304.jpg"
-                }
+                "icon": "https://cdn-icons-png.flaticon.com/512/5356/5356355.png",
+                "image": "https://img.freepik.com/free-photo/reminder-popup-bell-notification-alert-or-alarm-icon-sign-or-symbol-for-application-website-ui-on-purple-background-3d-rendering-illustration_56104-1304.jpg",
+                "click_action": click_action_url or "https://your-default-url.com"
             }
         }
+    }
+
+    payload = {
+        "message": message
     }
 
     response = requests.post(url, headers=headers, json=payload)
@@ -646,88 +663,78 @@ def send_notification(token, title, body):
             except IntegrityError as e:
                 print("Error updating token:", e)
 
-# Отправка уведомления всем
-def send_notification_to_all(title, body):
-    tokens = list(MyUser.objects.exclude(fcm_token__isnull=True).values_list('fcm_token', flat=True))
-    
-    url = "https://fcm.googleapis.com/v1/projects/chat-1a046/messages:send"
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "message": {
-            "notification": {
-                "title": title,
-                "body": body
-            },
-            "registration_ids": tokens,
-            "webpush": {
-                "notification": {
-                    "icon": "https://cdn-icons-png.flaticon.com/512/5356/5356355.png",
-                    "image": "https://img.freepik.com/free-photo/reminder-popup-bell-notification-alert-or-alarm-icon-sign-or-symbol-for-application-website-ui-on-purple-background-3d-rendering-illustration_56104-1304.jpg"
-                }
-            }
-        }
-    }
-
-    response = requests.post(url, headers=headers, json=payload)
-    print(response.status_code, response.text)
-
+                
+                
 @receiver(post_save, sender=Message)
 def notify_users(sender, instance, created, **kwargs):
     if created:
-        # Получение всех пользователей группы
         group = instance.group
-        users = group.participants.all()  # Это QuerySet
-        user_tokens = users.values_list('fcm_token', flat=True)  # Преобразование QuerySet в список
         
+        # Проверка, является ли группа публичной или личной
+        if group.is_private:  # Предположим, что у группы есть флаг is_private
+            users = group.members.all()  # Личные переписки
+        else:
+            users = group.participants.all()  # Публичные группы
+            
+        user_tokens = users.values_list('fcm_token', flat=True)  # Преобразование QuerySet в список
+
         for token in set(user_tokens):
             if token:
-                send_notification(token, 'New Message', f'New message from {instance.user.username}')
+                # Формирование URL с идентификатором группы
+                message_url = f"http://127.0.0.1:8000/group/{group.id}/"
+                send_notification(token, 'Новое сообщение', f'Новое сообщение от {instance.user.username}', 
+                                  click_action_url=message_url)
 
-@receiver(post_save, sender=Message)
-def notify_users(sender, instance, created, **kwargs):
-    if created:
-        # Получение всех пользователей группы
-        group = instance.group
-        users = group.members.all()  # Это QuerySet
-        user_tokens = users.values_list('fcm_token', flat=True)  # Преобразование QuerySet в список
-        
-        for token in set(user_tokens):
-            if token:
-                send_notification(token, 'New Message', f'New message from {instance.user.username}')
-
-
-
-
-
+                
+                
+                
 
 def showFirebaseJS(request):
-    data = 'importScripts("https://www.gstatic.com/firebasejs/8.6.3/firebase-app.js");' \
-           'importScripts("https://www.gstatic.com/firebasejs/8.6.3/firebase-messaging.js"); ' \
-           'const firebaseConfig = {' \
-           '    apiKey: "AIzaSyAGY1ytwc1uWbaj0Irr9-91kcR2suSQxvo",' \
-           '    authDomain: "chat-1a046.firebaseapp.com",' \
-           '    projectId: "chat-1a046",' \
-           '    storageBucket: "chat-1a046.appspot.com",' \
-           '    messagingSenderId: "100039898809",' \
-           '    appId: "1:100039898809:web:d75ce071caadd3c8924d68",' \
-           '    measurementId: "G-PY30DVF1J3"' \
-           '};' \
-           'firebase.initializeApp(firebaseConfig);' \
-           'const messaging = firebase.messaging();' \
-           'messaging.onBackgroundMessage(function (payload) {' \
-           '    console.log(payload);' \
-           '    const notification = payload.notification;' \
-           '    const notificationOptions = {' \
-           '        body: notification.body,' \
-           '        icon: notification.icon || "https://cdn-icons-png.flaticon.com/512/5356/5356355.png",' \
-           '        image: notification.image || "https://img.freepik.com/free-photo/reminder-popup-bell-notification-alert-or-alarm-icon-sign-or-symbol-for-application-website-ui-on-purple-background-3d-rendering-illustration_56104-1304.jpg"' \
-           '    };' \
-           '    return self.registration.showNotification(notification.title, notificationOptions);' \
-           '});' 
+    data = (
+        'importScripts("https://www.gstatic.com/firebasejs/8.6.3/firebase-app.js");'
+        'importScripts("https://www.gstatic.com/firebasejs/8.6.3/firebase-messaging.js"); '
+        'const firebaseConfig = {'
+        '    apiKey: "AIzaSyAGY1ytwc1uWbaj0Irr9-91kcR2suSQxvo",'
+        '    authDomain: "chat-1a046.firebaseapp.com",'
+        '    projectId: "chat-1a046",'
+        '    storageBucket: "chat-1a046.appspot.com",'
+        '    messagingSenderId: "100039898809",'
+        '    appId: "1:100039898809:web:d75ce071caadd3c8924d68",'
+        '    measurementId: "G-PY30DVF1J3"'
+        '};'
+        'firebase.initializeApp(firebaseConfig);'
+        'const messaging = firebase.messaging();'
+        'messaging.onBackgroundMessage(function (payload) {'
+        '    console.log(payload);'
+        '    const notification = payload.notification;'
+        '    const notificationOptions = {'
+        '        body: notification.body,'
+        '        icon: notification.icon || "https://cdn-icons-png.flaticon.com/512/5356/5356355.png",'
+        '        image: notification.image || "https://img.freepik.com/free-photo/reminder-popup-bell-notification-alert-or-alarm-icon-sign-or-symbol-for-application-website-ui-on-purple-background-3d-rendering-illustration_56104-1304.jpg",'
+        '        data: {'
+        '            url: notification.click_action || "/"'  # Добавляем URL для перехода
+        '        }'
+        '    };'
+        '    self.registration.showNotification(notification.title, notificationOptions);'
+        '});'
+
+        'self.addEventListener("notificationclick", function(event) {'
+        '    event.notification.close();'
+        '    const url = event.notification.data.url;'
+        '    event.waitUntil('
+        '        clients.matchAll({ type: "window", includeUncontrolled: true }).then( windowClients => {'
+        '            for (let client of windowClients) {'
+        '                if (client.url === url && "focus" in client) {'
+        '                    return client.focus();'
+        '                }'
+        '            }'
+        '            if (clients.openWindow) {'
+        '                return clients.openWindow(url);'
+        '            }'
+        '        })'
+        '    );'
+        '});'
+    )
 
     return HttpResponse(data, content_type="text/javascript")
 
