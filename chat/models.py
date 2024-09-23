@@ -3,24 +3,24 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django_otp.models import Device
 from django_otp.plugins.otp_totp.models import TOTPDevice
-from django_otp.models import Device
 from django.utils import timezone
 from datetime import timedelta
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
+import logging
 
 # Инициализация Fernet для шифрования
 ENCRYPT_KEY = b'ESx4HIzu4jbUVBBRDaiPBcFPO-vG7GoPKF0ueG_PKXk='
+f = Fernet(ENCRYPT_KEY)
 
 class GroupIs(models.Model):
     host = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     name = models.CharField(max_length=200)
     description = models.TextField(null=True, blank=True)
     participants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='participants', blank=True)
-    members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name= 'chat_groups', blank=True)
+    members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='chat_groups', blank=True)
     is_private = models.BooleanField(default=False)
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
-    
     
     class Meta:
         ordering = ['-updated', '-created']
@@ -31,9 +31,9 @@ class GroupIs(models.Model):
         return self.name
 
 class Message(models.Model):
-    group = models.ForeignKey(GroupIs,related_name="chat_messages", on_delete=models.CASCADE)
+    group = models.ForeignKey(GroupIs, related_name="chat_messages", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    body = models.TextField(max_length=1024) 
+    body = models.TextField(max_length=1024, blank=True, null=True)  # Позволяем быть пустым
     file = models.FileField(upload_to='files/', blank=True, null=True)  
     read = models.BooleanField(default=False)
     updated = models.DateTimeField(auto_now=True)
@@ -41,10 +41,15 @@ class Message(models.Model):
     
     @property
     def body_decrypted(self):
-        f = Fernet(ENCRYPT_KEY)
-        message_decrypted = f.decrypt(self.body)
-        message_decoded  = message_decrypted.decode('utf-8')
-        return message_decoded
+        if self.body:
+            try:
+                # Преобразуем строку в байты перед расшифровкой
+                message_decrypted = f.decrypt(self.body.encode('utf-8')).decode('utf-8')
+                return message_decrypted
+            except (InvalidToken, AttributeError) as e:
+                logging.error(f"Ошибка расшифровки сообщения {self.id}: {e}")
+                return "Ошибка расшифровки сообщения"
+        return ""
     
     class Meta:
         ordering = ['-updated', '-created']
@@ -59,19 +64,9 @@ class MyUser(AbstractUser):
     is_suspended = models.BooleanField(default=False)
     fcm_token = models.CharField(max_length=255, blank=True, null=True)
 
-
-
 class OTPDevice(Device):
     otp = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
-
-    def is_valid(self):
-        # OTP действителен в течение 10 минут
-        return timezone.now() < self.created_at + timedelta(minutes=10)
-
-# models.py
-
-from django.db import models
 
 class UserStatus(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -80,9 +75,6 @@ class UserStatus(models.Model):
     def __str__(self):
         return f"{self.user.username}: {self.status}"
 
-
-
-
 class Notification(models.Model):
     message = models.ForeignKey(Message, on_delete=models.CASCADE)
     user = models.ForeignKey(MyUser, on_delete=models.CASCADE)
@@ -90,9 +82,3 @@ class Notification(models.Model):
 
     class Meta:
         unique_together = ('message', 'user')  # Ensure one notification per message per user
-
-
-
-
-
-

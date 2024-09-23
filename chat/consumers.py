@@ -63,19 +63,32 @@ class ChatConsumer(AsyncWebsocketConsumer):
         text_data_json = json.loads(text_data)
         body = text_data_json.get('body', '')
         file_url = text_data_json.get('file_url', '')
+        file_name = text_data_json.get('file_name', '')
         user_token = text_data_json.get('user_token', '')
 
         if not body and not file_url:
             return
         
-        if text_data_json.get('type') == 'file_notification':
-            file_name = text_data_json.get('file_name')
-            # ... (обработка уведомления о файле)
-
-        elif text_data_json.get('type') == 'file_uploaded':
-            file_id = text_data_json.get('file_id')
-            # ... (обработка загруженного файла)
-
+        if text_data_json.get('type') == 'file_uploaded':
+            # Генерация HTML для сообщения с файлом
+            context = {
+                'file_name': file_name,
+                'file_url': file_url,
+                'user': self.user
+            }
+            html = await sync_to_async(render_to_string)("base/chat_message_p.html", context=context)
+            
+            # Отправка сообщения в группу
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    'type': 'chat_message',
+                    'html': html,
+                    'file_url': file_url,
+                    'user': self.user.username,
+                    'file_name': file_name  # Передаем имя файла
+                }
+            )
         else:
             try:
                 # Шифрование сообщения перед сохранением
@@ -114,7 +127,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def chat_message(self, event):
         html = event['html']
         
-        # Расшифровка сообщения перед отправкой клиенту
+        # Расшифровка сообщения перед отправкой клиенту (если нужно)
         try:
             message_id = event.get('message_id')
             if message_id:
