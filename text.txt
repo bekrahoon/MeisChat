@@ -26,6 +26,6 @@ python manage.py shell
 
 
 
-
+ git push origin feature
 
 
