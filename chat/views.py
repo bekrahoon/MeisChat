@@ -609,19 +609,16 @@ def save_fcm_token(request):
     return JsonResponse({'status': 'error'}, status=400)
 
 
-
-
 # Путь к вашему файлу сервисного аккаунта
 SERVICE_ACCOUNT_FILE = 'chat-1a046-firebase-adminsdk-qm11a-66e7a5a6db.json'
 
 # Аутентификация с использованием сервисного аккаунта
 credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
 scoped_credentials = credentials.with_scopes(['https://www.googleapis.com/auth/firebase.messaging'])
-request = google.auth.transport.requests.Request()
-scoped_credentials.refresh(request)
+request_auth = google.auth.transport.requests.Request()
+scoped_credentials.refresh(request_auth)
 
 access_token = scoped_credentials.token  # Токен доступа
-
 
 
 def send_notification(token, title, body, click_action_url=None):
@@ -633,16 +630,12 @@ def send_notification(token, title, body, click_action_url=None):
     
     message = {
         "token": token,
-        "notification": {
+        "data": {
             "title": title,
-            "body": body
-        },
-        "webpush": {
-            "notification": {
-                "icon": "https://cdn-icons-png.flaticon.com/512/5356/5356355.png",
-                "image": "https://img.freepik.com/free-photo/reminder-popup-bell-notification-alert-or-alarm-icon-sign-or-symbol-for-application-website-ui-on-purple-background-3d-rendering-illustration_56104-1304.jpg",
-                "click_action": click_action_url or "https://your-default-url.com"
-            }
+            "body": body,
+            "url": click_action_url or "https://your-default-url.com",
+            "icon": "https://cdn-icons-png.flaticon.com/128/3062/3062634.png",
+            "image": "https://img.freepik.com/free-photo/reminder-popup-bell-notification-alert-or-alarm-icon-sign-or-symbol-for-application-website-ui-on-purple-background-3d-rendering-illustration_56104-1304.jpg"
         }
     }
 
@@ -663,8 +656,7 @@ def send_notification(token, title, body, click_action_url=None):
             except IntegrityError as e:
                 print("Error updating token:", e)
 
-                
-                
+
 @receiver(post_save, sender=Message)
 def notify_users(sender, instance, created, **kwargs):
     if created:
@@ -681,13 +673,23 @@ def notify_users(sender, instance, created, **kwargs):
         for token in set(user_tokens):
             if token:
                 # Формирование URL с идентификатором группы
-                message_url = f"http://127.0.0.1:8000/group/{group.id}/"
-                send_notification(token, 'Новое сообщение', f'Новое сообщение от {instance.user.username}', 
-                                  click_action_url=message_url)
+                message_url = f"http://127.0.0.1:8000/group/{group.id}/"  
+                
+                if instance.body_decrypted:  # Проверяем, есть ли текстовое сообщение
+                    message_content = f'╰┈➤ {instance.body_decrypted}'
+                elif instance.file:  # Если есть файл, отображаем это
+                    message_content = '📎 Вам отправлен Файл'
+                send_notification(
+                    token,
+                    f'{instance.user.username} 📩 ',
+                    
+                    message_content,
+
+                    click_action_url=message_url,
+                )
 
                 
-                
-                
+from django.http import HttpResponse
 
 def showFirebaseJS(request):
     data = (
@@ -705,24 +707,25 @@ def showFirebaseJS(request):
         'firebase.initializeApp(firebaseConfig);'
         'const messaging = firebase.messaging();'
         'messaging.onBackgroundMessage(function (payload) {'
-        '    console.log(payload);'
-        '    const notification = payload.notification;'
+        '    console.log("Received background message: ", payload);'
+        '    const data = payload.data;'
+        '    const notificationTitle = data.title || "Новое уведомление";'
         '    const notificationOptions = {'
-        '        body: notification.body,'
-        '        icon: notification.icon || "https://cdn-icons-png.flaticon.com/512/5356/5356355.png",'
-        '        image: notification.image || "https://img.freepik.com/free-photo/reminder-popup-bell-notification-alert-or-alarm-icon-sign-or-symbol-for-application-website-ui-on-purple-background-3d-rendering-illustration_56104-1304.jpg",'
+        '        body: data.body || "",'
+        '        icon: data.icon || "https://cdn-icons-png.flaticon.com/512/5356/5356355.png",'
+        '        image: data.image || "https://img.freepik.com/free-photo/reminder-popup-bell-notification-alert-or-alarm-icon-sign-or-symbol-for-application-website-ui-on-purple-background-3d-rendering-illustration_56104-1304.jpg",'
         '        data: {'
-        '            url: notification.click_action || "/"'  # Добавляем URL для перехода
+        '            url: data.url || "/"'  # Извлечение URL из data
         '        }'
         '    };'
-        '    self.registration.showNotification(notification.title, notificationOptions);'
+        '    self.registration.showNotification(notificationTitle, notificationOptions);'
         '});'
 
         'self.addEventListener("notificationclick", function(event) {'
         '    event.notification.close();'
         '    const url = event.notification.data.url;'
         '    event.waitUntil('
-        '        clients.matchAll({ type: "window", includeUncontrolled: true }).then( windowClients => {'
+        '        clients.matchAll({ type: "window", includeUncontrolled: true }).then(windowClients => {'
         '            for (let client of windowClients) {'
         '                if (client.url === url && "focus" in client) {'
         '                    return client.focus();'
@@ -737,6 +740,3 @@ def showFirebaseJS(request):
     )
 
     return HttpResponse(data, content_type="text/javascript")
-
-
-
