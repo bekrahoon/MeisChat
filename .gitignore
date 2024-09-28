@@ -1,9 +1,22 @@
-media/files/Telegram.exe,
-newenv,
-media,
-gunicorn-23.0.0.dist-info,
-staticfiles,
-.vscode,
-__pycache__
-.env
+# Игнорировать медиафайлы
+media/
+
+# Игнорировать скомпилированные файлы Python
 __pycache__/
+
+# Игнорировать файлы и папки, связанные с виртуальной средой
+.env
+newenv/
+
+# Игнорировать статические файлы, собранные с помощью Django
+staticfiles/
+
+# Игнорировать папки и файлы, связанные с Visual Studio Code
+.vscode/
+
+# Игнорировать специфические библиотеки (например, gunicorn)
+gunicorn-23.0.0.dist-info/
+
+# Игнорировать определенные исполняемые файлы
+media/files/Telegram.exe
+
