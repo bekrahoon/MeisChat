@@ -34,7 +34,7 @@
     <h2>Messages:</h2>
     <div class="messages">
       {% for message in group_messages %}
-        <div class="message {{ message.tags }}">{{ message }}</div>
+        <div class="message {{ message.tags }}">{{ message.body_decrypted }}</div>
       {% endfor %}
     </div>
   </div>

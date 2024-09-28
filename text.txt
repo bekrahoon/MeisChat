@@ -24,7 +24,7 @@ python manage.py shell
 
 
 
-
+ pip freeze > requirements.txt
 
  git push origin feature
 
