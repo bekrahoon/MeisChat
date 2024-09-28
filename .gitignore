@@ -1,1 +1,8 @@
-media/files/Telegram.exe
+media/files/Telegram.exe,
+newenv,
+media,
+gunicorn-23.0.0.dist-info,
+staticfiles,
+.vscode,
+__pycache__
+.env
