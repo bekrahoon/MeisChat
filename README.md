@@ -25,7 +25,6 @@
 python manage.py makemigrations
 python manage.py migrate
 
-python manage.py shell
 
 
 
@@ -35,6 +34,5 @@ python manage.py shell
 
  pip freeze > requirements.txt
 
- git push origin feature
 
 
