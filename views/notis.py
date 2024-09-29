@@ -1,36 +1,38 @@
 from django.db.models.signals import post_save
 from django.db import IntegrityError
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.dispatch import receiver
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 from chat.models import MyUser, Message
 from google.oauth2 import service_account
 from decouple import config
-import requests
 import google.auth.transport.requests
 import requests
 
 
-def save_fcm_token(request):
-    if request.method == "POST":
-        token = request.POST.get("fcm_token")
+class SaveFcmTokenView(APIView):
+    permission_classes = [IsAuthenticated]  # Проверка на авторизацию
+
+    def post(self, request):
+        token = request.data.get("fcm_token")
         print(f"Received token: {token}")  # Логирование для отладки
+
         if not token:
-            return JsonResponse(
-                {"status": "error", "message": "Token not provided"}, status=400
-            )
-        if not request.user.is_authenticated:
-            return JsonResponse(
-                {"status": "error", "message": "User not authenticated"}, status=401
+            return Response(
+                {"status": "error", "message": "Token not provided"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         user = get_object_or_404(MyUser, id=request.user.id)
-
         user.fcm_token = token
         user.save()
         print(f"Token saved for user: {user.username}")
-        return JsonResponse({"status": "success"})
-    return JsonResponse({"status": "error"}, status=400)
+
+        return Response({"status": "success"}, status=status.HTTP_200_OK)
 
 
 # Путь к вашему файлу сервисного аккаунта

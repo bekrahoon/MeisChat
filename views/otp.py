@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, render, redirect
 from django.core.mail import send_mail
 from django.conf import settings
+from django.views import View
 from chat.models import MyUser
 from twilio.rest import Client
 import random
@@ -34,8 +35,8 @@ def send_otp_via_sms(phone_number, otp):
 logger = logging.getLogger(__name__)
 
 
-def verify_otp(request):
-    if request.method == "POST":
+class VerifyOTPView(View):
+    def post(self, request):
         otp_input = request.POST.get("otp")
         user_id = request.session.get("otp_user_id")
         session_otp = request.session.get("otp")
@@ -50,7 +51,7 @@ def verify_otp(request):
 
         user = get_object_or_404(MyUser, id=user_id)
 
-        # Преобразуйте значения в строки перед сравнением
+        # Преобразуем значения в строки перед сравнением
         if session_otp and str(otp_input).strip() == str(session_otp).strip():
             login(request, user)
             request.session.pop("otp_user_id", None)
@@ -62,10 +63,11 @@ def verify_otp(request):
             messages.error(request, "Invalid OTP")
             return redirect("verify_otp")
 
-    user_id = request.session.get("otp_user_id")
-    user = get_object_or_404(MyUser, id=user_id) if user_id else None
-    context = {"user": user}
-    return render(request, "base/login.html", context)
+    def get(self, request):
+        user_id = request.session.get("otp_user_id")
+        user = get_object_or_404(MyUser, id=user_id) if user_id else None
+        context = {"user": user}
+        return render(request, "base/login.html", context)
 
 
 def resend_otp(request):

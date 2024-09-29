@@ -1,11 +1,17 @@
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponse, JsonResponse, HttpResponseForbidden
+from django.http import Http404, HttpResponse, HttpResponseForbidden
+from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Q
-from django.shortcuts import render, redirect
-from chat.forms import (
-    MessageCreationForm,
-    GroupIsForm,
-)
+from django.urls import reverse_lazy
+from django.views.generic.edit import UpdateView
+from django.views.generic.edit import DeleteView
+from django.views.generic.edit import CreateView
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from chat.forms import MessageCreationForm, GroupIsForm
 from chat.models import MyUser, GroupIs, Message
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
@@ -115,55 +121,71 @@ def get_or_create_chat(request, pk):
     return redirect("group", chat.id)
 
 
-@login_required
-def update_message_status(request, message_id):
-    if request.method == "POST":
-        try:
-            message = Message.objects.get(id=message_id)
-            message.read = True
-            message.save()
-            return JsonResponse({"status": "success"})
-        except Message.DoesNotExist:
-            return JsonResponse({"error": "Message not found"}, status=404)
-    return JsonResponse({"error": "Invalid request method"}, status=400)
+class UpdateMessageStatusApi(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, message_id):
+        # Получаем сообщение или возвращаем 404, если оно не найдено
+        message = get_object_or_404(Message, id=message_id)
+
+        # Обновляем статус сообщения
+        message.read = True
+        message.save()
+
+        # Возвращаем успешный ответ
+        return Response({"status": "success"}, status=status.HTTP_200_OK)
 
 
-def chat_file_upload(request, pk):
-    if request.method == "POST" and request.FILES:
-        try:
-            file = request.FILES["file"]
-            file_name = file.name
+class ChatFileUploadApi(APIView):
+    permission_classes = [IsAuthenticated]
 
-            # Создаем новое сообщение с файлом
-            message = Message.objects.create(
-                file=file,
-                user=request.user,
-                group_id=pk,
-            )
+    def post(self, request, pk):
+        # Проверяем, содержит ли запрос файлы
+        if request.FILES:
+            try:
+                file = request.FILES.get("file")
+                file_name = file.name if file else None
 
-            # Проверяем, был ли файл успешно загружен
-            if message.file:
-                # Отправка уведомления через WebSocket
-                channel_layer = get_channel_layer()
-                event = {
-                    "type": "chat_file",
-                    "file_url": message.file.url,
-                    "file_name": file_name,
-                    "user": request.user.username,
-                }
-                async_to_sync(channel_layer.group_send)(f"group_{pk}", event)
-                return JsonResponse(
-                    {"file_url": message.file.url, "file_name": file_name}
+                # Создаем новое сообщение с файлом
+                message = Message.objects.create(
+                    file=file,
+                    user=request.user,
+                    group_id=pk,
                 )
-            else:
-                return JsonResponse({"error": "Файл не был загружен"}, status=400)
-        except Exception as e:
-            # Логирование исключения и возврат ошибки
-            print(f"Error in file upload: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
-    return JsonResponse(
-        {"error": "Invalid request method or no file uploaded"}, status=400
-    )
+
+                # Проверяем, был ли файл успешно загружен
+                if message.file:
+                    # Отправка уведомления через WebSocket
+                    channel_layer = get_channel_layer()
+                    event = {
+                        "type": "chat_file",
+                        "file_url": message.file.url,
+                        "file_name": file_name,
+                        "user": request.user.username,
+                    }
+                    async_to_sync(channel_layer.group_send)(f"group_{pk}", event)
+
+                    # Возвращаем успешный ответ с информацией о файле
+                    return Response(
+                        {"file_url": message.file.url, "file_name": file_name},
+                        status=status.HTTP_201_CREATED,
+                    )
+                else:
+                    return Response(
+                        {"error": "Файл не был загружен"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            except Exception as e:
+                # Логирование исключения и возврат ошибки
+                print(f"Error in file upload: {e}")
+                return Response(
+                    {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        else:
+            return Response(
+                {"error": "Invalid request method or no file uploaded"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 def group_view(request, pk):
@@ -174,50 +196,48 @@ def group_view(request, pk):
     return render(request, "base/group.html", context)
 
 
-@login_required(login_url="login")
-def createGroup(request):
-    form = GroupIsForm()
-    if request.method == "POST":
-        form = GroupIsForm(request.POST)
-        if form.is_valid():
-            group = form.save(commit=False)
-            group.host = request.user
-            group.save()
-            return redirect("home")
+class GroupCreateView(LoginRequiredMixin, CreateView):
+    model = GroupIs
+    form_class = GroupIsForm
+    template_name = "base/group_form.html"
+    login_url = "login"
+    success_url = reverse_lazy("home")
 
-    context = {"form": form}
-    return render(request, "base/group_form.html", context)
+    def form_valid(self, form):
+        # Устанавливаем текущего пользователя в качестве host
+        form.instance.host = self.request.user
+        return super().form_valid(form)
 
 
-@login_required(login_url="login")
-def updateGroup(request, pk):
-    group = GroupIs.objects.get(id=pk)
-    form = GroupIsForm(instance=group)
+class GroupUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = GroupIs
+    form_class = GroupIsForm
+    template_name = "base/group_form.html"
+    login_url = "login"
+    success_url = reverse_lazy("home")
 
-    if request.user != group.host:
+    def test_func(self):
+        # Проверяем, что текущий пользователь является хозяином группы
+        group = self.get_object()
+        return self.request.user == group.host
+
+    def handle_no_permission(self):
         return HttpResponse("You are not allowed here!!")
 
-    if request.method == "POST":
-        form = GroupIsForm(request.POST, instance=group)
-        if form.is_valid():
-            form.save()
-            return redirect("home")
 
-    context = {"form": form}
+class GroupDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = GroupIs
+    template_name = "base/delete.html"
+    success_url = reverse_lazy("home")
+    login_url = "login"
 
-    return render(request, "base/group_form.html", context)
+    def test_func(self):
+        # Проверяем, что текущий пользователь является хозяином группы
+        group = self.get_object()
+        return self.request.user == group.host
 
-
-@login_required(login_url="login")
-def deleteGroup(request, pk):
-    group = GroupIs.objects.get(id=pk)
-    if request.user != group.host:
+    def handle_no_permission(self):
         return HttpResponse("You are not allowed here!!")
-
-    if request.method == "POST":
-        group.delete()
-        return redirect("home")
-    return render(request, "base/delete.html", {"obj": group})
 
 
 @login_required(login_url="login")
