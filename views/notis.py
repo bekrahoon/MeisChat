@@ -1,3 +1,15 @@
+from django.db.models.signals import post_save
+from django.db import IntegrityError
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404
+from django.dispatch import receiver
+from chat.models import MyUser, Message
+from google.oauth2 import service_account
+from decouple import config
+import requests
+import google.auth.transport.requests
+import requests
+
 
 def save_fcm_token(request):
     if request.method == "POST":
@@ -22,7 +34,7 @@ def save_fcm_token(request):
 
 
 # Путь к вашему файлу сервисного аккаунта
-SERVICE_ACCOUNT_FILE = config('FIREBASE_SERVICE_ACCOUNT_KEY')
+SERVICE_ACCOUNT_FILE = config("FIREBASE_SERVICE_ACCOUNT_KEY")
 
 # Аутентификация с использованием сервисного аккаунта
 credentials = service_account.Credentials.from_service_account_file(
@@ -125,7 +137,7 @@ def showFirebaseJS(request):
         "    const notificationOptions = {"
         '        body: data.body || "",'
         '        icon: data.icon || "static/images/3062634.png",'
-        '        image: data.image || "static/images/images_notis.avif",'
+        '        image: data.image || "static/images/3062634.png",'
         "        data: {"
         '            url: data.url || "/"'  # Извлечение URL из data
         "        }"

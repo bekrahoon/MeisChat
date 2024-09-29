@@ -3,6 +3,7 @@ from django.forms import ModelForm
 from django import forms
 from .models import GroupIs, Message, MyUser
 
+
 class GroupIsForm(ModelForm):
     participants = forms.ModelMultipleChoiceField(
         queryset=MyUser.objects.all(),

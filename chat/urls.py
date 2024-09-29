@@ -1,29 +1,30 @@
 from django.conf.urls.static import static
 from django.conf import settings
 from django.urls import path
-from .views import (
-    loginPage,
-    logoutUser,
-    registerPage,
-    verify_otp,
-    resend_otp,
-    userProfile,
-    change_login,
-    home,
-    group,
-    participants,
-    profile_update,
-    suspended_view,
-    get_or_create_chat,
-    createGroup,
-    updateGroup,
+from views.chat import (
+    chat_file_upload,
     deleteGroup,
     deleteMessage,
+    group,
+    home,
+    get_or_create_chat,
+    createGroup,
     update_message_status,
-    chat_file_upload,
-    showFirebaseJS,
-    save_fcm_token,
+    updateGroup,
 )
+from views.notis import save_fcm_token, showFirebaseJS
+from views.otp import resend_otp, verify_otp
+from views.users import (
+    change_login,
+    loginPage,
+    logoutUser,
+    participants,
+    registerPage,
+    userProfile,
+    profile_update,
+    suspended_view,
+)
+
 
 urlpatterns = [
     path("accounts/login/", loginPage, name="login"),

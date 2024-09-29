@@ -1,11 +1,11 @@
-from decouple import config
 from django.template.loader import render_to_string
+from .models import Message, GroupIs
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from .models import Message, GroupIs
-from asgiref.sync import sync_to_async
 from firebase_admin import credentials, messaging
+from asgiref.sync import sync_to_async
 from cryptography.fernet import Fernet
+from decouple import config
 import firebase_admin
 import logging
 import json
@@ -13,11 +13,11 @@ import json
 
 # Инициализация Firebase
 if not firebase_admin._apps:
-    cred = credentials.Certificate(config('FIREBASE_SERVICE_ACCOUNT_KEY'))
+    cred = credentials.Certificate(config("FIREBASE_SERVICE_ACCOUNT_KEY"))
     firebase_admin.initialize_app(cred)
 
 # Инициализация Fernet для шифрования
-ENCRYPT_KEY = b"ESx4HIzu4jbUVBBRDaiPBcFPO-vG7GoPKF0ueG_PKXk="
+ENCRYPT_KEY = config('ENCRYPT_KEY')
 f = Fernet(ENCRYPT_KEY)
 
 
@@ -30,8 +30,8 @@ async def send_firebase_notification(token, title, body):
         token=token,
         webpush=messaging.WebpushConfig(
             notification=messaging.WebpushNotification(
-                icon="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSzJh1CsHFfi4c7ws2wVzarUi_A4CPo-fkCLw&s",
-                image="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUQFn0-lTsoToECguElP_8rMAYKnN6Fo5kUA&s",
+                icon="static/images/3062634.png",
+                image="static/images/3062634.png",
             )
         ),
     )

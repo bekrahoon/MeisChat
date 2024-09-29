@@ -4,9 +4,10 @@ from django.db import models
 from django_otp.models import Device
 from cryptography.fernet import Fernet, InvalidToken
 import logging
+from decouple import config
 
 # Инициализация Fernet для шифрования
-ENCRYPT_KEY = b"ESx4HIzu4jbUVBBRDaiPBcFPO-vG7GoPKF0ueG_PKXk="
+ENCRYPT_KEY = config('ENCRYPT_KEY')
 f = Fernet(ENCRYPT_KEY)
 
 

@@ -1,3 +1,13 @@
+from django.contrib.auth import login
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, render, redirect
+from django.core.mail import send_mail
+from django.conf import settings
+from chat.models import MyUser
+from twilio.rest import Client
+import random
+import logging
+
 
 def generate_otp():
     return random.randint(100000, 999999)
@@ -19,51 +29,6 @@ def send_otp_via_sms(phone_number, otp):
         body=f"Your OTP is {otp}", from_=settings.TWILIO_PHONE_NUMBER, to=phone_number
     )
     return message.sid
-
-
-def loginPage(request):
-    page = "login"
-
-    if request.user.is_authenticated:
-        return redirect("home")
-
-    if request.method == "POST":
-        form = CustomAuthenticationForm(data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            otp = generate_otp()
-            request.session["otp"] = otp
-
-            # Отправка OTP пользователю
-            if user.phone_number:
-                send_otp_via_sms(user.phone_number, otp)
-                messages.success(request, "OTP sent to your phone.")
-            elif user.email:
-                send_otp_via_email(user.email, otp)
-                messages.success(request, "OTP sent to your email.")
-            else:
-                messages.error(
-                    request, "No contact information associated with this account."
-                )
-
-            request.session["otp_user_id"] = user.id
-
-            return redirect("verify_otp")
-        else:
-            messages.error(request, "Invalid login credentials.")
-    else:
-        form = CustomAuthenticationForm()
-
-    context = {"page": page, "form": form}
-    return render(request, "base/login.html", context)
-
-
-def change_login(request):
-    # Очистка сессии для удаления OTP информации
-    request.session.pop("otp_user_id", None)
-
-    # Перенаправление на страницу входа
-    return redirect("login")
 
 
 logger = logging.getLogger(__name__)
@@ -126,34 +91,3 @@ def resend_otp(request):
     logger.debug(f"New OTP: {otp} saved in session")
     messages.success(request, "OTP has been resent to your email or phone.")
     return redirect("verify_otp")
-
-
-
-
-
-def registerPage(request):
-    if request.method == "POST":
-        form = MyUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect("home")
-    else:
-        form = MyUserCreationForm()
-
-    context = {"form": form}
-    return render(request, "base/register.html", context)
-
-
-def logoutUser(request):
-    logout(request)
-    return redirect("home")
-
-def suspended_view(request):
-    return render(
-        request,
-        "base/suspended.html",
-        {
-            "message": "Ваш аккаунт был приостановлен. Свяжитесь с поддержкой для получения информации."
-        },
-    )
