@@ -142,60 +142,7 @@ def get_or_create_chat(request, pk):
     return redirect("group", chat.id)
 
 
-@login_required
-def update_message_status(request, message_id):
-    if request.method == "POST":
-        try:
-            message = Message.objects.get(id=message_id)
-            message.read = True
-            message.save()
-            return JsonResponse({"status": "success"})
-        except Message.DoesNotExist:
-            return JsonResponse({"error": "Message not found"}, status=404)
-    return JsonResponse({"error": "Invalid request method"}, status=400)
 
 
-def chat_file_upload(request, pk):
-    if request.method == "POST" and request.FILES:
-        try:
-            file = request.FILES["file"]
-            file_name = file.name
 
-            # Создаем новое сообщение с файлом
-            message = Message.objects.create(
-                file=file,
-                user=request.user,
-                group_id=pk,
-            )
-
-            # Проверяем, был ли файл успешно загружен
-            if message.file:
-                # Отправка уведомления через WebSocket
-                channel_layer = get_channel_layer()
-                event = {
-                    "type": "chat_file",
-                    "file_url": message.file.url,
-                    "file_name": file_name,
-                    "user": request.user.username,
-                }
-                async_to_sync(channel_layer.group_send)(f"group_{pk}", event)
-                return JsonResponse(
-                    {"file_url": message.file.url, "file_name": file_name}
-                )
-            else:
-                return JsonResponse({"error": "Файл не был загружен"}, status=400)
-        except Exception as e:
-            # Логирование исключения и возврат ошибки
-            print(f"Error in file upload: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
-    return JsonResponse(
-        {"error": "Invalid request method or no file uploaded"}, status=400
-    )
     
-    
-def group_view(request, pk):
-    group = GroupIs.objects.get(pk=pk)
-    messages = Message.objects.filter(group=group).order_by("created")
-    context = {"group": group, "messages": messages}
-
-    return render(request, "base/group.html", context)

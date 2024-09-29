@@ -50,8 +50,8 @@ def send_notification(token, title, body, click_action_url=None):
             "title": title,
             "body": body,
             "url": click_action_url or "https://your-default-url.com",
-            "icon": "https://cdn-icons-png.flaticon.com/128/3062/3062634.png",
-            "image": "https://img.freepik.com/free-photo/reminder-popup-bell-notification-alert-or-alarm-icon-sign-or-symbol-for-application-website-ui-on-purple-background-3d-rendering-illustration_56104-1304.jpg",
+            "icon": "static/images/3062634.png",
+            "image": "static/images/images_notis.avif",
         },
     }
 
@@ -124,8 +124,8 @@ def showFirebaseJS(request):
         '    const notificationTitle = data.title || "Новое уведомление";'
         "    const notificationOptions = {"
         '        body: data.body || "",'
-        '        icon: data.icon || "https://cdn-icons-png.flaticon.com/512/5356/5356355.png",'
-        '        image: data.image || "https://img.freepik.com/free-photo/reminder-popup-bell-notification-alert-or-alarm-icon-sign-or-symbol-for-application-website-ui-on-purple-background-3d-rendering-illustration_56104-1304.jpg",'
+        '        icon: data.icon || "static/images/3062634.png",'
+        '        image: data.image || "static/images/images_notis.avif",'
         "        data: {"
         '            url: data.url || "/"'  # Извлечение URL из data
         "        }"

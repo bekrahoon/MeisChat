@@ -23,3 +23,5 @@ gunicorn-23.0.0.dist-info/
 media/files/Telegram.exe
 
 cred/
+
+
