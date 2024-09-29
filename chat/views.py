@@ -22,11 +22,13 @@ from asgiref.sync import async_to_sync
 from twilio.rest import Client
 from .decorators import suspended_decorator
 from google.oauth2 import service_account
+from decouple import config
 import random
 import requests
 import google.auth.transport.requests
 import requests
 import logging
+
 
 
 def generate_otp():
@@ -537,7 +539,7 @@ def save_fcm_token(request):
 
 
 # Путь к вашему файлу сервисного аккаунта
-SERVICE_ACCOUNT_FILE = "chat-1a046-firebase-adminsdk-qm11a-d145f57645.json"
+SERVICE_ACCOUNT_FILE = config('FIREBASE_SERVICE_ACCOUNT_KEY')
 
 # Аутентификация с использованием сервисного аккаунта
 credentials = service_account.Credentials.from_service_account_file(

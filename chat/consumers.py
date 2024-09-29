@@ -1,3 +1,4 @@
+from decouple import config
 from django.template.loader import render_to_string
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
@@ -12,7 +13,7 @@ import json
 
 # Инициализация Firebase
 if not firebase_admin._apps:
-    cred = credentials.Certificate("chat-1a046-firebase-adminsdk-qm11a-66e7a5a6db.json")
+    cred = credentials.Certificate(config('FIREBASE_SERVICE_ACCOUNT_KEY'))
     firebase_admin.initialize_app(cred)
 
 # Инициализация Fernet для шифрования
