@@ -24,7 +24,7 @@ services:
       - "8080:8000"
     depends_on:
       - redis
-      - db  # Ensure the web service depends on the db service as well
+      - db  
     environment:
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG}
@@ -45,4 +45,4 @@ services:
       - .:/app  
 
 volumes:
-  db_data:  # Named volume for persistent PostgreSQL data
+  db_data:  
