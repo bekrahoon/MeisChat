@@ -2,7 +2,7 @@
   <form action="" method="POST" style="margin-bottom: 30px;">
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ next }}">
-    <p style="font-size: 20px; font-weight: bold; text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);">Are you sure you want to delete this "{{ obj }}"?</p>
+    <p style="font-size: 20px; font-weight: bold; text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);">Are you sure you want to delete this "{{ obj.body_decrypted }}"?</p>
     <button type="submit" class="btn btn-danger" style="background-color: #ff3737; border: none; padding: 15px 30px; font-size: 18px; border-radius: 10px;">Confirm</button>
     <a
       href="{% if next %}{{ next }}{% else %}{% url 'home' %}{% endif %}"

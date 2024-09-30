@@ -238,7 +238,7 @@ class GroupDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
     def handle_no_permission(self):
         return HttpResponse("You are not allowed here!!")
-
+    
 
 @login_required(login_url="login")
 def deleteMessage(request, pk):
