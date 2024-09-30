@@ -110,7 +110,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('redis', 6379)],  
+            "hosts": [('redis', 6379)],  #! change to localhost 
         },
     },
 }
@@ -131,8 +131,12 @@ DATABASES = {
         'NAME': config('DATABASE_NAME'),
         'USER': config('DATABASE_USER'),
         'PASSWORD': config('DATABASE_PASSWORD'),
-        'HOST': 'db',
+        'HOST': 'db', #! change to localhost
+
         'PORT': '5432',
+        'OPTIONS': {
+            'client_encoding': 'UTF8',  # Убедитесь, что указана UTF-8
+        },
     }
 }
 
