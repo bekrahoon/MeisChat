@@ -135,7 +135,7 @@ DATABASES = {
 
         'PORT': '5432',
         'OPTIONS': {
-            'client_encoding': 'UTF8',  # Убедитесь, что указана UTF-8
+            'client_encoding': 'UTF8',  
         },
     }
 }

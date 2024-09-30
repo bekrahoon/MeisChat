@@ -34,8 +34,10 @@ def home(request):
     group_count = groups.count()
 
     # Поиск по сообщениям
-    group_messages = Message.objects.filter(Q(group__name__icontains=q))
-
+    group_messages = Message.objects.filter(
+        Q(group__in=groups) 
+        ).distinct()
+    
     # Поиск по пользователям
     users = MyUser.objects.filter(Q(username__icontains=q) | Q(email__icontains=q))
 
