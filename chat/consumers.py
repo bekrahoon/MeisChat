@@ -1,5 +1,5 @@
 from django.template.loader import render_to_string
-from .models import Message, GroupIs
+from .models import Message, GroupIs, MyUser
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from firebase_admin import credentials, messaging
@@ -42,6 +42,12 @@ async def send_firebase_notification(token, title, body):
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
+        
+        # Убедитесь, что self.user - это экземпляр кастомного пользователя
+        if not isinstance(self.user, MyUser):
+            await self.close()
+            return
+        
         self.group_id = self.scope["url_route"]["kwargs"]["group_id"]
         self.group_name = f"chat_{self.group_id}"
 

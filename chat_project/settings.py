@@ -74,9 +74,7 @@ FIREBASE_SERVER_KEY = config('FIREBASE_SERVER_KEY')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    
     "corsheaders.middleware.CorsMiddleware",
-
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -85,7 +83,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
-
 ]
 
 ROOT_URLCONF = 'chat_project.urls'
@@ -113,10 +110,11 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
+            "hosts": [('redis', 6379)],  
         },
     },
 }
+
 
 
 
@@ -137,7 +135,6 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-    
 
 
 

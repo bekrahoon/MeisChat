@@ -1,10 +1,12 @@
-version: '3.8'  
+version: '3.8'
 
 services:
   redis:
     image: redis:latest
     ports:
       - "6379:6379"
+    networks:
+      - app-network
 
   db:
     image: postgres:latest
@@ -16,15 +18,17 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    networks:
+      - app-network
 
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
     ports:
-      - "8080:8000"
+      - "8000:8000"
     depends_on:
       - redis
-      - db  
+      - db
     environment:
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG}
@@ -39,10 +43,16 @@ services:
       EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
       DATABASE_USER: ${DATABASE_USER}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-      DATABASE_NAME: ${DATABASE_NAME}  
+      DATABASE_NAME: ${DATABASE_NAME}
       ENCRYPT_KEY: ${ENCRYPT_KEY}
     volumes:
-      - .:/app  
+      - .:/app
+    networks:
+      - app-network
 
 volumes:
-  db_data:  
+  db_data:
+
+networks:
+  app-network:
+    driver: bridge

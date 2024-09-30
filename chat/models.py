@@ -43,7 +43,7 @@ class Message(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     body = models.TextField(
         max_length=1024, blank=True, null=True
-    )  # Позволяем быть пустым
+    )  
     file = models.FileField(upload_to="files/", blank=True, null=True)
     read = models.BooleanField(default=False)
     updated = models.DateTimeField(auto_now=True)
