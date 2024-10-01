@@ -107,7 +107,8 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('redis', 6379)],  #! change to localhost 
+            "hosts": [('redis', 6379)],  #! change to localhost  if you're running on local machine
+
         },
     },
 }
@@ -128,7 +129,7 @@ DATABASES = {
         'NAME': config('DATABASE_NAME'),
         'USER': config('DATABASE_USER'),
         'PASSWORD': config('DATABASE_PASSWORD'),
-        'HOST': 'db', #! change to localhost
+        'HOST': 'db',  #! change to localhost  if you're running on local machine
 
         'PORT': '5432',
         'OPTIONS': {
