@@ -1,0 +1,159 @@
+<!-- Navbar -->
+{% load static %}
+
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark" id="navbar">
+    
+    <a class="nav-link user_profile" href="{% url 'user_profile' request.user.pk %}">
+      My Profile
+    </a>
+    <a class="navbar-brand ml-5" href="{% url 'home' %}">
+        <h1 style="color: #1e90ff;">MeIsChat</h1>
+    </a>
+    <a class="nav-link back-button" href="{{ request.META.HTTP_REFERER }}">
+      <img src="{% static 'images/back.webp' %}" alt="Назад" class="back-icon" />
+    </a>
+    <div class="d-flex align-items-center mx-auto"> <!-- Центрирование элементов -->
+        <form action="{% url 'home' %}" method="GET" class="form-inline">
+            <input type="text" name="q" placeholder="Search..." class="form-control search-input" />
+            <button type="submit" class="navbar-search my-2 my-sm-0">Search</button>
+        </form>
+    </div>
+
+
+    <h2 class="ml-5" style="margin-bottom: 0; color:white;">Hi, {{ request.user.username }}!</h2>
+
+    <div class="nav-item dropdown ml-auto">
+        <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+            <i class="fas fa-ellipsis-v text-white"></i>
+        </a>
+        <div class="dropdown-menu dropdown-menu-right">
+            <a class="dropdown-item" href="{% url 'create-group' %}">New Group</a>
+            {% if group.pk %}
+            {% if not group.is_private %}
+            <a class="dropdown-item" href="{% url 'participants' group.pk %}">View Participants</a>
+            {% endif %}
+            {% endif %}
+            <a class="dropdown-item" href="{% url 'update_profile' user.pk %}">Profile Settings</a>
+            <a class="dropdown-item" href="{% url 'logout' %}">Log Out</a>
+        </div>
+    </div>
+</nav>
+
+<style>
+  /* Остальные стили остаются без изменений */
+  #navbar {
+    background-color: #1e1e1e; /* Темный фон для навигационной панели */
+    border-bottom: 1px solid #333; /* Легкая граница для разделения */
+  }
+
+  /* Центрирование поля поиска */
+  .form-inline {
+    display: flex;
+    align-items: center;
+  }
+
+  .search-input {
+    width: 500px; /* Увеличиваем ширину поля поиска */
+    margin-right: 10px; /* Отступ между полем и кнопкой */
+  }
+
+  .navbar-search {
+    color: #fff; /* Светлый цвет текста */
+    background-color: #333; /* Темный фон поля ввода */
+    border: 1px solid #444; /* Темная рамка */
+    border-radius: 5px; /* Закругленные углы */
+    padding: 8px 12px; /* Отступы внутри */
+    transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s; /* Плавный переход */
+    font-size: 16px; /* Размер шрифта */
+}
+
+.navbar-search:hover {
+    background-color: #00224D; /* Цвет фона при наведении */
+    border-color: #1e90ff; /* Цвет рамки при наведении */
+    box-shadow: 0 0 8px rgba(30, 144, 255, 0.5); /* Легкая тень при наведении */
+}
+
+.form-control {
+    background-color: #222; /* Темный фон для поля ввода */
+    color: #fff; /* Светлый цвет текста */
+    border: 1px solid #444; /* Темная рамка */
+}
+
+.form-control::placeholder {
+    color: #bbb; /* Цвет текста плейсхолдера */
+}
+
+.form-control:focus {
+    border-color: #1e90ff; /* Цвет рамки при фокусе */
+    box-shadow: 0 0 5px rgba(30, 144, 255, 0.5); /* Легкая тень при фокусе */
+}
+
+  .dropdown-menu {
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .dropdown-item {
+    color: #dcdcdc;
+  }
+
+  .dropdown-item:hover {
+    background-color: #333;
+  }
+
+  .search-input {
+    border-radius: 20px;
+    background-color: #2a2a2a;
+    color: #dcdcdc;
+  }
+  .back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: #2a2a2a; /* Темный фон для кнопки */
+    border-radius: 50%; /* Круглая форма кнопки */
+    transition: background-color 0.3s ease, transform 0.2s ease; /* Плавные переходы */
+    margin-left: 30px; /* Отступ между полем и кнопкой */
+
+  }
+
+  .back-button:hover {
+    background-color: #1e90ff; /* Цвет при наведении */
+    transform: scale(1.1); /* Легкое увеличение при наведении */
+  }
+
+  .back-icon {
+    width: 24px;
+    height: 24px;
+    filter: invert(80%); /* Сделать иконку светлой */
+    transition: filter 0.3s ease; /* Плавный переход для иконки */
+  }
+
+  .back-button:hover .back-icon {
+    filter: invert(100%); /* Полностью светлая иконка при наведении */
+  }
+  .user_profile {
+    display: inline-block; 
+    background-color: #4a90e2; 
+    color: #ffffff; 
+    padding: 10px 15px; 
+    border-radius: 5px; 
+    text-decoration: none; 
+    font-family: Arial, sans-serif; 
+    font-size: 16px; 
+    transition: background-color 0.3s, transform 0.2s; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    margin-left: 25px;
+  }
+  
+  .user_profile:hover {
+    background-color: #66b1ef; /* Измените цвет фона при наведении */
+    transform: scale(1.05); /* Увеличение размера при наведении */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Увеличение тени */
+  }
+  
+</style>

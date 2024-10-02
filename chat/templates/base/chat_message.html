@@ -1,59 +1,179 @@
-<div class="message" id="message-{{ message.id }}">
-  <div id="notifications"></div>
+<div class="message" id="message-{{ message.id }}" data-notification-sent="{{ message.notification_sent }}" data-read="{{ message.read }}">
+
+  {% if file_name %}
+  <div>
+    <strong>{{ user.username }}:</strong> Отправил файл {{ file_name }}<p> (для того чтобы увидеть файл перезагрузите страницу!)</p>
+  </div>
+  {% else %}
+  <small class="message-meta">
+    from @<a href="{% url "user-profile" message.user.id %}">{{ message.user.username }}</a>  {{ message.created | timesince }} ago
+  </small>
+  {% endif %}
   {% if request.user == message.user %}
-  <a href="{% url "delete-message" message.id %}" class="delete-link">delete</a>
+    {% if message.read == True %}
+      <p style="font-size=8erm;">Message recieved!</p>
+    {% endif %}
   {% endif %}
-  <small class="message-meta">{{ message.user }} {{ message.created | timesince }} ago</small>
-  <p class="message-body">{{ message.body }}</p>
-  
-  {% if message.image %}
-  <img src="{{ message.image.url }}" alt="Image" style="max-width: 200px; height: auto; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);" />
+  {% if request.user == message.user and message.id %}
+  <a class="delete-btn" href="{% url 'delete-message' message.id %}" title="Delete message">
+    Delete
+  </a>
+{% endif %}
+  {% if message.body_decrypted %}
+  <p class="message-body" >{{ message.body_decrypted }}</p>
+  {% elif message.file %}
+  <div class="media-container" id="file-{{ message.id }}">
+    {% with extension=message.file.name|slice:"-4:" %}
+      {% if extension == ".jpg" or extension == ".png" or extension == ".gif" %}
+      <img src="{{ message.file.url }}" alt="uploaded image">
+      {% elif extension == ".mp4" or extension == ".webm" or extension == ".ogg" %}
+      <video controls>
+        <source src="{{ message.file.url }}" type="video/{{ extension|slice:"1:" }}">
+        Your browser does not support the video tag.
+      </video>
+      {% elif extension == ".mp3" or extension == ".wav" or extension == ".ogg" %}
+      <audio controls>
+        <source src="{{ message.file.url }}" type="audio/{{ extension|slice:"1:" }}">
+        Your browser does not support the audio tag.
+      {% elif extension == ".pdf" %}
+      <a href="{{ message.file.url }}" target="_blank" class="download-link">View PDF</a>
+      {% else %}
+      <a href="{{ message.file.url }}" download class="download-link">Download file</a>
+      {% endif %}
+    {% endwith %}
+  </div>
   {% endif %}
-  
-  {% if message.video %}
-  <video controls style="max-width: 200px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);">
-      <source src="{{ message.video.url }}" type="video/mp4">
-      Your browser does not support the video tag.
-  </video>
-  {% endif %}
-  
-  {% if message.file %}
-  <a href="{{ message.file.url }}" download style="background-color: #4CAF50; color: #fff; padding: 10px; border-radius: 10px; text-decoration: none;">Download File</a>
-  {% endif %}
-  
-  <hr style="border-color: #fff; margin-bottom: 10px;" />
+  <hr style="border-color: #444; margin-bottom: 10px;" />
 </div>
 
+
+<!-- Стили -->
 <style>
-.message {
-  background-color: #444;
-  color: #fff;
-  padding: 20px;
-  border-radius: 20px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-  margin-bottom: 20px;
-}
+  body {
+    background-color: #181818;
+    color: #ddd;
+    font-family: 'Arial', sans-serif;
+  }
 
-.message-meta {
-  color: #bbb;
-  font-size: 1em;
-  font-weight: bold;
-}
+  .message {
+    background-color: #222;
+    color: #ddd;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    margin-bottom: 20px;
+  }
 
-.message-body {
-  font-size: 1.2em;
-  color: white;
-  font-family: Arial, sans-serif;
-}
+  a {
+    color: #1abc9c;
+    text-decoration: none;
+  }
 
-.delete-link {
-  color: #ff3737;
-  text-decoration: none;
-  margin-left: 20px;
-  font-weight: bold;
-}
+  a:hover {
+    text-decoration: underline;
+  }
 
-.delete-link:hover {
-  text-decoration: underline;
-}
+  .message-meta {
+    color: #888;
+    font-size: 0.9em;
+    font-weight: bold;
+  }
+
+  .message-body {
+    font-size: 18px;
+    line-height: 1.6;
+    margin: 5px 0;
+    color: #eee;
+    font-family: Arial, sans-serif;
+  }
+
+  .media-container {
+    margin: 10px 0;
+  }
+  
+  .media-container img,
+  .media-container video {
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    max-width: 25%; /* Уменьшаем ширину до 20% */
+
+  }
+  
+
+  .download-link {
+    display: inline-block;
+    margin: 10px 0;
+    padding: 10px 15px;
+    font-size: 14px;
+    color: #1abc9c;
+    text-decoration: none;
+    border: 1px solid #1abc9c;
+    border-radius: 4px;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  .download-link:hover {
+    background-color: #1abc9c;
+    color: #ffffff;
+  }
+
+  .delete-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: #ff4d4d; /* Яркий красный фон для кнопки */
+    color: white; /* Белый текст */
+    padding: 4px 8px; /* Меньшие отступы для маленькой кнопки */
+    border-radius: 3px; /* Закругленные углы */
+    text-decoration: none; /* Убрать подчеркивание */
+    font-size: 0.9em; /* Меньший шрифт */
+    transition: background-color 0.3s, transform 0.2s; /* Плавный переход при наведении */
+  }
+  
+  .delete-btn:hover {
+    background-color: #ff1a1a; /* Темнее при наведении */
+    transform: scale(1.05); /* Увеличение при наведении */
+  }
+  
+  audio {
+    width: 50%; 
+    margin: 10px 0;
+    border-radius: 5px; /* Закругленные углы */
+    background-color: #222; /* Темный фон для аудио */
+    padding: 8px; /* Отступы для комфорта */
+    border: 1px solid #444; /* Граница для аудио */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Легкая тень */
+  }
+  
+  audio::-webkit-media-controls {
+    background-color: #333; /* Темный фон для элементов управления */
+    border-radius: 5px; /* Закругленные углы */
+  }
+  
+  audio::-webkit-media-controls-panel {
+    background-color: #333; /* Фон панели управления */
+    border-radius: 5px; /* Закругленные углы */
+  }
+  
+  audio::-webkit-media-controls-play-button,
+  audio::-webkit-media-controls-volume-slider,
+  audio::-webkit-media-controls-mute-button {
+    background-color: #1abc9c; /* Цвет кнопок */
+    border-radius: 5px; /* Закругленные углы */
+  }
+  
+  audio::-webkit-media-controls-volume-slider {
+    cursor: pointer; /* Указатель при наведении */
+  }
+  
+  /* Дополнительный стиль для аудио, если необходимо */
+  audio:focus {
+    outline: none; /* Убираем обводку при фокусе */
+    box-shadow: 0 0 10px rgba(26, 188, 156, 0.5); /* Тень при фокусе */
+  }
+  
+  
 </style>
+
+
+

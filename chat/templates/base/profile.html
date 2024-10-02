@@ -1,9 +1,12 @@
-{% extends "main.html" %} 
+{% extends "main.html" %}
+
 {% block content %}
+
 <div class="profile-container">
   <div class="auth-form">
     <h1>{{ user.username }}</h1>
     <p>Email: {{ user.email }}</p>
+    {% if request.user.pk == user.pk %}
     <form action="{% url 'update_profile' user.pk %}" method="POST"> 
       {% csrf_token %}
       {{ form.as_p }}
@@ -14,59 +17,141 @@
       <input type="hidden" name="send_sms" value="1" />
       <button type="submit" class="btn btn-primary">Send OTP via SMS</button>
     </form>
+    {% endif %}
+    <hr>
+    {% if request.user.pk != user.pk %}
+      <a href="{% url "start-chat" user.pk %}" class="btn btn-chat">Chat with {{ user.username }}</a>
+    {% endif %}
+    <br>
+    <!-- Groups -->
+    <h2>Groups:</h2>
+    <div class="group-list">
+      {% for group in groups %}
+        <div class="group-item">{{ group.name }}</div>
+      {% endfor %}
+    </div>
+    <!-- Messages -->
+    <h2>Messages:</h2>
     <div class="messages">
-      {% for message in messages %}
-        <div class="message {{ message.tags }}">{{ message }}</div>
+      {% for message in group_messages %}
+        <div class="message {{ message.tags }}">{{ message.body_decrypted }}</div>
       {% endfor %}
     </div>
   </div>
 </div>
+
 <style>
+  body {
+    background-color: #121212; /* Темный фон для страницы */
+    color: #e0e0e0; /* Светлый цвет текста */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Современный шрифт */
+  }
+
   .profile-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-    margin-top: 20px;
+    display: flex;
     justify-content: center;
+    align-items: flex-start;
+    flex-direction: column;
+    margin: 20px auto;
+    width: 100%; /* Полная ширина */
+    max-width: 800px; /* Ограничение максимальной ширины */
   }
-  .profile-container > div {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    width: 50%;
-  }
-  .profile-container h1 {
-    margin-bottom: 10px;
-  }
+
   .auth-form {
-    text-align: center;
-    margin: 0 auto;
-    background-color: #333;
-    color: #fff;
-    padding: 20px;
+    background-color: #1e1e1e; /* Фон формы */
     border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    padding: 20px;
+    width: 90%;
+    text-align: center;
   }
-  .auth-form button, .auth-form input[type="submit"] {
-    background-color: #444;
-    border-color: #444;
+
+  h1 {
+    margin-bottom: 10px;
+    font-size: 28px;
+    color: #1e90ff; /* Яркий цвет заголовка */
+  }
+
+  h2 {
+    color: #ffffff;
+    padding: 10px 0;
+    font-size: 22px;
+  }
+
+  .btn {
+    background-color: #4CAF50; /* Зеленый фон для кнопок */
     color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin: 10px 0;
+    width: 100%; /* Полная ширина кнопок */
   }
+
+  .btn:hover {
+    background-color: #45a049; /* Темнее при наведении */
+  }
+
+  .btn-primary {
+    background-color: #007bff; /* Синий фон для кнопок */
+  }
+
+  .btn-primary:hover {
+    background-color: #0056b3; /* Темнее при наведении */
+  }
+
+  .btn-chat {
+    background-color: #4CAF50; /* Зеленый фон для кнопки чата */
+    width: auto; /* Автоширина для кнопки чата */
+  }
+
+  .group-list {
+    margin-top: 15px;
+    background-color: #333;
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .group-item {
+    background-color: #444;
+    color: #fff;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    transition: background-color 0.3s;
+  }
+
+  .group-item:hover {
+    background-color: #555; /* Темнее при наведении */
+  }
+
   .messages {
-    margin-bottom: 20px;
+    margin-top: 15px;
+    overflow-y: auto; /* Прокрутка для сообщений */
+    height: 300px; /* Фиксированная высота для области сообщений */
+    background-color: #333;
+    border-radius: 8px;
+    padding: 10px;
   }
+
   .message {
     padding: 10px;
     border-radius: 5px;
     margin-bottom: 10px;
   }
+
   .message.success {
     background-color: #d4edda;
     color: #155724;
   }
+
   .message.error {
     background-color: #f8d7da;
     color: #721c24;
   }
+  
 </style>
+
 {% endblock %}
