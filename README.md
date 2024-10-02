@@ -20,6 +20,11 @@
       - [Formatting the code base:](#formatting-the-code-base)
       - [Running the test suite:](#running-the-test-suite)
       - [Stopping everything:](#stopping-everything)
+  - [Running env](#running-env)
+      - [Сreate the env folder](#сreate-the-env-folder)
+      - [And then we go into it](#and-then-we-go-into-it)
+      - [After that we install all the necessary dependencies](#after-that-we-install-all-the-necessary-dependencies)
+      - [Now let's run the `migrations`](#now-lets-run-the-migrations)
   - [Firebase:](#firebase)
     - [Setting up Firebase key:](#setting-up-firebase-key)
     - [Firebase setup:](#firebase-setup)
@@ -131,6 +136,30 @@ You can start things up again with `docker compose up` and unlike the first
 time it should only take seconds.
 
 
+## Running env
+
+#### Сreate the env folder
+```sh
+python -m venv venv
+```
+#### And then we go into it
+```sh
+source venv/bin/activate  # для Windows: venv\Scripts\activate
+```
+
+#### After that we install all the necessary dependencies
+```sh
+pip install -r requirements.txt
+```
+
+#### Now let's run the `migrations`
+```sh
+python manage.py makemigrations
+```
+
+```sh
+python manage.py migrate
+```
 
 ## Firebase:
 ###  Setting up Firebase key:
@@ -185,3 +214,4 @@ Also in the file [`notis copy.py`](<views/notis copy.py>) on line `#55` you need
 ```py
     url = "https://fcm.googleapis.com/v1/projects/your_projectId/messages:send" #! Insert your projectId
 ```
+
