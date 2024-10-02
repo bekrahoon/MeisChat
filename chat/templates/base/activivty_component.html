@@ -1,0 +1,97 @@
+<hr style="border-color: #444;">
+{% for message in group_messages %}
+    <div class="message-item">
+        <div class="message-header">
+            <small>
+                <a class="username" href="{% url "user-profile" message.user.id %}">{{ message.user }}</a> 
+                {{ message.created | timesince }} ago
+            </small>
+            <small>replied to "{{ message.group }}"</small>
+        </div>
+        <p class="message-body">
+            {% if message.file %}
+                {{message}}
+            {% else %}
+                {{ message.body_decrypted }}
+            {% endif %}
+        </p>
+        {% if request.user == message.user %}
+            <a class="delete-btn" href="{% url "delete-message" message.id %}">Delete</a>
+        {% endif %}
+        <hr class="message-divider">
+    </div>
+{% endfor %}
+
+<!-- Стили -->
+<style>
+    /* Общий фон страницы */
+    body {
+        background-color: #121212;
+        color: #e0e0e0;
+        font-family: 'Roboto', sans-serif;
+    }
+
+    /* Элемент сообщения */
+    .message-item {
+        background-color: #1e1e1e;
+        padding: 15px;
+        margin-bottom: 20px;
+        margin-left: 40px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .message-item:hover {
+        transform: scale(1.02);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Шапка сообщения: имя пользователя и время */
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .message-header small {
+        color: #9e9e9e;
+    }
+
+    /* Ссылка на профиль пользователя */
+    a.username {
+        color: #81d4fa;
+        font-weight: bold;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    a.username:hover {
+        color: #4fc3f7;
+    }
+
+    /* Тело сообщения */
+    .message-body {
+        color: #e0e0e0;
+        margin-bottom: 10px;
+    }
+
+    /* Кнопка удаления сообщения */
+    .delete-btn {
+        color: #f44336;
+        text-decoration: none;
+        font-weight: bold;
+        transition: color 0.3s ease, transform 0.2s ease;
+    }
+
+    .delete-btn:hover {
+        color: #d32f2f;
+        transform: scale(1.05);
+    }
+
+    /* Разделительная линия внутри сообщения */
+    .message-divider {
+        border-color: #444;
+        margin-top: 15px;
+    }
+</style>
