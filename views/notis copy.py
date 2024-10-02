@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.db import IntegrityError
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.dispatch import receiver
 from rest_framework.views import APIView
@@ -12,13 +12,14 @@ from google.oauth2 import service_account
 from decouple import config
 import google.auth.transport.requests
 import requests
+from typing import Any
 
 
 class SaveFcmTokenView(APIView):
     permission_classes = [IsAuthenticated]  # Проверка на авторизацию
 
-    def post(self, request):
-        token = request.data.get("fcm_token")
+    def post(self, request: HttpRequest) -> Response:
+        token: str = request.data.get("fcm_token")
         print(f"Received token: {token}")  # Логирование для отладки
 
         if not token:
@@ -36,7 +37,7 @@ class SaveFcmTokenView(APIView):
 
 
 # Путь к вашему файлу сервисного аккаунта
-SERVICE_ACCOUNT_FILE = config("FIREBASE_SERVICE_ACCOUNT_KEY")
+SERVICE_ACCOUNT_FILE: str = config("FIREBASE_SERVICE_ACCOUNT_KEY")
 
 # Аутентификация с использованием сервисного аккаунта
 credentials = service_account.Credentials.from_service_account_file(
@@ -48,17 +49,17 @@ scoped_credentials = credentials.with_scopes(
 request = google.auth.transport.requests.Request()
 scoped_credentials.refresh(request)
 
-access_token = scoped_credentials.token  # Токен доступа
+access_token: str = scoped_credentials.token  # Токен доступа
 
+def send_notification(token: str, title: str, body: str, click_action_url: Optional[str] = None) -> None:
 
-def send_notification(token, title, body, click_action_url=None):
-    url = "https://fcm.googleapis.com/v1/projects/your_projectId/messages:send" #! Insert your projectId
-    headers = {
+    url: str = "https://fcm.googleapis.com/v1/projects/chat-1a046/messages:send"
+    headers: Dict[str, str] = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
     }
 
-    message = {
+    message: Dict[str, Any] = {
         "token": token,
         "data": {
             "title": title,
@@ -69,7 +70,7 @@ def send_notification(token, title, body, click_action_url=None):
         },
     }
 
-    payload = {"message": message}
+    payload: Dict[str, Any] = {"message": message}
 
     response = requests.post(url, headers=headers, json=payload)
     if response.status_code == 200:
@@ -86,7 +87,7 @@ def send_notification(token, title, body, click_action_url=None):
 
 
 @receiver(post_save, sender=Message)
-def notify_users(sender, instance, created, **kwargs):
+def notify_users(sender: type[Message], instance: Message, created: bool, **kwargs: Any) ->  None:
     if created:
         group = instance.group
 

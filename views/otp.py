@@ -1,5 +1,6 @@
 from django.contrib.auth import login
 from django.contrib import messages
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.core.mail import send_mail
 from django.conf import settings
@@ -10,11 +11,12 @@ import random
 import logging
 
 
-def generate_otp():
+def generate_otp() -> int:
     return random.randint(100000, 999999)
 
 
-def send_otp_via_email(email, otp):
+def send_otp_via_email(email: int, otp: int) -> int:
+
     logger.debug(f"Sending OTP {otp} to email {email}")
     subject = "Your OTP Code"
     message = f"Your OTP is {otp}"
@@ -23,7 +25,7 @@ def send_otp_via_email(email, otp):
     send_mail(subject, message, from_email, recipient_list)
 
 
-def send_otp_via_sms(phone_number, otp):
+def send_otp_via_sms(phone_number: int, otp: int) -> int:
     logger.debug(f"Sending OTP {otp} to phone number {phone_number}")
     client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
     message = client.messages.create(
@@ -36,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class VerifyOTPView(View):
-    def post(self, request):
+    def post(self, request: HttpRequest) -> HttpResponse:
         otp_input = request.POST.get("otp")
         user_id = request.session.get("otp_user_id")
         session_otp = request.session.get("otp")
@@ -63,14 +65,14 @@ class VerifyOTPView(View):
             messages.error(request, "Invalid OTP")
             return redirect("verify_otp")
 
-    def get(self, request):
+    def get(self, request: HttpRequest) -> HttpResponse:
         user_id = request.session.get("otp_user_id")
         user = get_object_or_404(MyUser, id=user_id) if user_id else None
         context = {"user": user}
         return render(request, "base/login.html", context)
 
 
-def resend_otp(request):
+def resend_otp(request: HttpRequest) -> HttpResponse:
     user_id = request.session.get("otp_user_id")
     if not user_id:
         messages.error(request, "User session not found")

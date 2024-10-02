@@ -6,6 +6,7 @@ from firebase_admin import credentials, messaging
 from asgiref.sync import sync_to_async
 from cryptography.fernet import Fernet
 from decouple import config
+from typing import Any, Dict, Optional
 import firebase_admin
 import logging
 import json
@@ -17,11 +18,11 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 
 # Инициализация Fernet для шифрования
-ENCRYPT_KEY = config('ENCRYPT_KEY')
+ENCRYPT_KEY = config("ENCRYPT_KEY")
 f = Fernet(ENCRYPT_KEY)
 
 
-async def send_firebase_notification(token, title, body):
+async def send_firebase_notification(token: str, title: str, body: str) -> Any:
     message = messaging.Message(
         notification=messaging.Notification(
             title=title,
@@ -40,16 +41,15 @@ async def send_firebase_notification(token, title, body):
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
+    async def connect(self) -> None:
         self.user = self.scope["user"]
-        
-        # Убедитесь, что self.user - это экземпляр кастомного пользователя
+
         if not isinstance(self.user, MyUser):
             await self.close()
             return
-        
-        self.group_id = self.scope["url_route"]["kwargs"]["group_id"]
-        self.group_name = f"chat_{self.group_id}"
+
+        self.group_id: str = self.scope["url_route"]["kwargs"]["group_id"]
+        self.group_name: str = f"chat_{self.group_id}"
 
         try:
             self.group = await self.get_group(self.group_id)
@@ -60,23 +60,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
-    async def disconnect(self, close_code):
+    async def disconnect(self, close_code: int) -> None:
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
-    async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        body = text_data_json.get("body", "")
-        file_url = text_data_json.get("file_url", "")
-        file_name = text_data_json.get("file_name", "")
-        user_token = text_data_json.get("user_token", "")
+    async def receive(self, text_data: str) -> None:
+        text_data_json: Optional[str] = json.loads(text_data)
+        body: Optional[str] = text_data_json.get("body", "")
+        file_url: Optional[str] = text_data_json.get("file_url", "")
+        file_name: Optional[str] = text_data_json.get("file_name", "")
+        user_token: Optional[str] = text_data_json.get("user_token", "")
 
         if not body and not file_url:
             return
 
         if text_data_json.get("type") == "file_uploaded":
             # Генерация HTML для сообщения с файлом
-            context = {"file_name": file_name, "file_url": file_url, "user": self.user}
-            html = await sync_to_async(render_to_string)(
+            context: Dict[str, Any] = {
+                "file_name": file_name,
+                "file_url": file_url,
+                "user": self.user,
+            }
+            html: str = await sync_to_async(render_to_string)(
                 "base/chat_message_p.html", context=context
             )
 
@@ -94,14 +98,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         else:
             try:
                 # Шифрование сообщения перед сохранением
-                encrypted_body = f.encrypt(body.encode("utf-8")).decode("utf-8")
+                encrypted_body: str = f.encrypt(body.encode("utf-8")).decode("utf-8")
 
                 message = await self.create_message(encrypted_body, file_url)
 
-                context = {"message": message, "user": self.user}
+                context: Dict[str, Any] = {"message": message, "user": self.user}
 
                 # Генерация HTML для сообщения
-                html = await sync_to_async(render_to_string)(
+                html: str = await sync_to_async(render_to_string)(
                     "base/chat_message_p.html", context=context
                 )
 
@@ -130,14 +134,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 logging.error(f"Error creating message: {e}")
 
     async def chat_message(self, event):
-        html = event["html"]
+        html: str = event["html"]
 
         # Расшифровка сообщения перед отправкой клиенту (если нужно)
         try:
-            message_id = event.get("message_id")
+            message_id: Optional[int] = event.get("message_id")
             if message_id:
                 message = await self.get_message(message_id)
-                decrypted_body = f.decrypt(message.body.encode("utf-8")).decode("utf-8")
+                decrypted_body: str = f.decrypt(message.body.encode("utf-8")).decode(
+                    "utf-8"
+                )
             else:
                 decrypted_body = "Сообщение не найдено"
 
@@ -163,11 +169,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
     @database_sync_to_async
-    def get_group(self, group_id):
+    def get_group(self, group_id: int) -> Optional[GroupIs]:
         return GroupIs.objects.get(id=group_id)
 
     @database_sync_to_async
-    def create_message(self, body, file_url):
+    def create_message(self, body: str, file_url: Optional[str]) -> Message:
         if file_url:
             return Message.objects.create(
                 body=body, file=file_url, user=self.user, group=self.group
@@ -176,5 +182,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return Message.objects.create(body=body, user=self.user, group=self.group)
 
     @database_sync_to_async
-    def get_message(self, message_id):
+    def get_message(self, message_id: int) -> Message:
         return Message.objects.get(id=message_id)

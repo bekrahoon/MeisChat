@@ -1,6 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponse, HttpResponseForbidden
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Q
 from django.urls import reverse_lazy
@@ -16,14 +16,15 @@ from chat.models import MyUser, GroupIs, Message
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from chat.decorators import suspended_decorator
+from typing import Optional, Dict, Any
 
 
 @login_required
-def home(request):
+def home(request: HttpRequest) -> HttpResponse:
     if not request.user.is_authenticated:
         return redirect("login")
 
-    q = request.GET.get("q") if request.GET.get("q") else ""
+    q: Optional[str] = request.GET.get("q") if request.GET.get("q") else ""
 
     # Поиск по группам
     groups = GroupIs.objects.filter(
@@ -31,17 +32,15 @@ def home(request):
         Q(participants__id=request.user.id) | Q(host=request.user),
     ).distinct()
 
-    group_count = groups.count()
+    group_count: int = groups.count()
 
     # Поиск по сообщениям
-    group_messages = Message.objects.filter(
-        Q(group__in=groups) 
-        ).distinct()
-    
+    group_messages = Message.objects.filter(Q(group__in=groups)).distinct()
+
     # Поиск по пользователям
     users = MyUser.objects.filter(Q(username__icontains=q) | Q(email__icontains=q))
 
-    context = {
+    context: Dict[str, Any] = {
         "groups": groups,
         "group_count": group_count,
         "group_messages": group_messages,
@@ -54,20 +53,20 @@ def home(request):
 
 @suspended_decorator
 @login_required
-def group(request, pk):
+def group(request: HttpRequest, pk: int) -> HttpResponse:
 
     if request.user.is_authenticated != True:
         return redirect("login")
 
     page = "participants"
 
-    q = request.GET.get("q") if request.GET.get("q") != None else ""
+    q: Optional[str] = request.GET.get("q") if request.GET.get("q") != None else ""
     groups = GroupIs.objects.filter(
         Q(name__icontains=q) | Q(description__icontains=q),
         Q(participants__id=request.user.id) | Q(host=request.user),
     ).distinct()
 
-    group_count = groups.count()
+    group_count: int = groups.count()
     group_messages = Message.objects.filter(Q(group__name__icontains=q))
     users = MyUser.objects.filter(Q(username__icontains=q) | Q(email__icontains=q))
     form = MessageCreationForm()
@@ -85,7 +84,7 @@ def group(request, pk):
             if member != request.user:
                 other_user = member
                 break
-    context = {
+    context: Dict[str, Any] = {
         "group": group,
         "group_messages": group_messages,
         "participants": participants,
@@ -102,14 +101,14 @@ def group(request, pk):
 
 
 @login_required
-def get_or_create_chat(request, pk):
+def get_or_create_chat(request: HttpRequest, pk: int) -> HttpResponse:
     if request.user.id == pk:
         return redirect("home")
 
-    other_user = MyUser.objects.get(pk=pk)
+    other_user: MyUser = MyUser.objects.get(pk=pk)
 
     # Поиск существующего чата
-    chat = (
+    chat: Optional[GroupIs] = (
         GroupIs.objects.filter(is_private=True, members=other_user)
         .filter(members=request.user)
         .first()
@@ -126,14 +125,13 @@ def get_or_create_chat(request, pk):
 class UpdateMessageStatusApi(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, message_id):
+    def post(self, request, message_id: int) -> Response:
         # Получаем сообщение или возвращаем 404, если оно не найдено
         message = get_object_or_404(Message, id=message_id)
 
         # Обновляем статус сообщения
         message.read = True
         message.save()
-
         # Возвращаем успешный ответ
         return Response({"status": "success"}, status=status.HTTP_200_OK)
 
@@ -141,7 +139,7 @@ class UpdateMessageStatusApi(APIView):
 class ChatFileUploadApi(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, pk):
+    def post(self, request: HttpRequest, pk: int) -> Response:
         # Проверяем, содержит ли запрос файлы
         if request.FILES:
             try:
@@ -190,10 +188,10 @@ class ChatFileUploadApi(APIView):
             )
 
 
-def group_view(request, pk):
+def group_view(request: HttpRequest, pk: int) -> HttpResponse:
     group = GroupIs.objects.get(pk=pk)
     messages = Message.objects.filter(group=group).order_by("created")
-    context = {"group": group, "messages": messages}
+    context: Dict[str, Any] = {"group": group, "messages": messages}
 
     return render(request, "base/group.html", context)
 
@@ -205,7 +203,7 @@ class GroupCreateView(LoginRequiredMixin, CreateView):
     login_url = "login"
     success_url = reverse_lazy("home")
 
-    def form_valid(self, form):
+    def form_valid(self, form: GroupIsForm) -> HttpResponse:
         # Устанавливаем текущего пользователя в качестве host
         form.instance.host = self.request.user
         return super().form_valid(form)
@@ -218,12 +216,13 @@ class GroupUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     login_url = "login"
     success_url = reverse_lazy("home")
 
-    def test_func(self):
+    def test_func(self) -> bool:
         # Проверяем, что текущий пользователь является хозяином группы
         group = self.get_object()
         return self.request.user == group.host
 
-    def handle_no_permission(self):
+    def handle_no_permission(self) -> HttpResponse:
+
         return HttpResponse("You are not allowed here!!")
 
 
@@ -233,17 +232,17 @@ class GroupDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     success_url = reverse_lazy("home")
     login_url = "login"
 
-    def test_func(self):
+    def test_func(self) -> bool:
         # Проверяем, что текущий пользователь является хозяином группы
         group = self.get_object()
         return self.request.user == group.host
 
-    def handle_no_permission(self):
+    def handle_no_permission(self) -> HttpResponse:
         return HttpResponse("You are not allowed here!!")
-    
+
 
 @login_required(login_url="login")
-def deleteMessage(request, pk):
+def deleteMessage(request: HttpRequest, pk: int):
     message = Message.objects.get(id=pk)
 
     if request.user != message.user:
@@ -253,7 +252,7 @@ def deleteMessage(request, pk):
         message.delete()
 
         # Получаем URL для редиректа из формы (или перенаправляем на главную, если его нет)
-        next_url = request.POST.get("next", "home")
+        next_url: str = request.POST.get("next", "home")
         return redirect(next_url)
 
     # Передаём реферер в форму для дальнейшего использования
