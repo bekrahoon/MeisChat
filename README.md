@@ -21,6 +21,11 @@
       - [Running the test suite:](#running-the-test-suite)
       - [Stopping everything:](#stopping-everything)
   - [Firebase:](#firebase)
+    - [Setting up Firebase key:](#setting-up-firebase-key)
+    - [Firebase setup:](#firebase-setup)
+      - [Firebase setup notis copy.py: `notis copy.py` starting from `#124` line:](#firebase-setup-notis-copypy-notis-copypy-starting-from-124-line)
+      - [Firebase setup main copy.html:](#firebase-setup-main-copyhtml)
+      - [Firebase setup notis copy.py:](#firebase-setup-notis-copypy)
 
 ## An example of how the home page might look like:
 
@@ -128,10 +133,55 @@ time it should only take seconds.
 
 
 ## Firebase:
+###  Setting up Firebase key:
 
 -  [Firebase](https://firebase.google.com/docs/projects/learn-more?hl=ru)
   
   In order to get the key and all the necessary things in firebase you need to go to the link to register and go to the project console, and then to the section "`Project Options`" and find "`API-key`".
-![Firebase](static/images/screen-firebase.png)****
+___
+![Firebase](static/images/screen-firebase.png)
 
 After you get the Firebase key, create a cred folder and put the key there. `json`
+
+
+###  Firebase setup:
+
+In the file [main copy.html](<templates/main copy.html>) and [notis copy.py](<views/notis copy.py>) you need to change the file name, i.e. remove copy. And also add the application data from `firebase console` .
+ ___ 
+#### Firebase setup notis copy.py: [`notis copy.py`](<views/notis copy.py>) starting from `#124` line:
+
+```py
+        "const firebaseConfig = {"
+        '    apiKey: "",' #! add apiKey
+        '    authDomain: "",' #! add authDomain here
+        '    projectId: "",' #! add projectId here
+        '    storageBucket: "",' #! add a storageBucket
+        '    messagingSenderId: "",' #! add the messagingSenderId
+        '    appId: "",' #! add the appId here
+        '    measurementId: ""' #! add here the measurementId
+        "};"
+```
+___
+####  Firebase setup main copy.html:
+same thing in [`main copy.html`](<templates/main copy.html>) starting at line `37`
+
+``` js
+      var firebaseConfig = {
+        apiKey: "", //! add apiKey
+        authDomain: "",  //! add authDomain here
+        projectId: "",   //! add projectId here
+        storageBucket: "",   //! add a storageBucket
+        messagingSenderId: "",   //! add the messagingSenderId
+        appId: "",    //! add the appId here
+        measurementId: ""    //! add here the measurementId
+      };
+
+```
+___
+####  Firebase setup notis copy.py:
+
+Also in the file [`notis copy.py`](<views/notis copy.py>) on line `#55` you need to change **your_projectId** to the projectId from ***firebase console***.
+
+```py
+    url = "https://fcm.googleapis.com/v1/projects/your_projectId/messages:send" #! Insert your projectId
+```
