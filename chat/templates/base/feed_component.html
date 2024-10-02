@@ -1,53 +1,155 @@
 <!--Группы-->
 
-<div class="group-feed" style="background-color: #333; color: #fff;">
+<div class="group-feed">
     {% for group in groups %}
-        <div class="group-item" style="background-color: #444; color: #fff;">
+        <div class="group-item">
             {% if request.user == group.host %}
-                <a class="btn btn-primary" href="{% url "update-group" group.id %}" style="background-color: #66d9ef;">Edit</a>
-                <a class="btn btn-danger" href="{% url "delete-group" group.id %}" style="background-color: #f92672;">Delete</a>
+                <div class="action-buttons">
+                    <a class="btn btn-primary" href="{% url "update-group" group.id %}">Edit</a>
+                    <a class="btn btn-danger" href="{% url "delete-group" group.id %}">Delete</a>
+                </div>
             {% endif %}
-            <a class="username" href="{% url "user-profile" group.host.id %}" style="color: #fff;">{{ group.host.username }}</a>
-            <h4><a href="{% url "group" group.id %}" style="color: #fff;">{{ group.name }}</a></h4>
-            <small style="color: #999;">{{ group.description }}</small>
-            <hr style="border-color: #555;">
+            <a class="username" href="{% url "user-profile" group.host.id %}">{{ group.host.username }}</a>
+            <h4><a href="{% url "group" group.id %}">{{ group.name }}</a></h4>
+            <small>{{ group.description }}</small>
+            <hr>
         </div>
     {% endfor %}
+    
+    {% for user in users %}
+        {% if request.user.pk != user.pk %}
+            <div class="group-item">
+                <a href="{% url "start-chat" user.pk %}" class="chat-btn">
+                    Chat with {{ user.username }}
+                </a>
+                <hr>
+            </div>
+        {% endif %}
+    {% endfor %}
 </div>
+
 <!--КОНЕЦ Группы-->
-
-
 
 <!--Стили-->
 <style>
+    /* Общий фон страницы */
+    body {
+        background-color: #121212;
+        color: #e0e0e0;
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Общий стиль для групп */
     .group-feed {
         margin: 0 auto;
-        padding: 20px;
+        padding: 40px 20px;
+        max-width: 900px;
+        background-color: #1e1e1e;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
-    
+
+    /* Каждый элемент группы */
     .group-item {
+        background-color: #2b2b2b;
+        padding: 20px;
         margin-bottom: 20px;
-        padding: 10px;
-        border: 1px solid #555;
-        border-radius: 4px;
+        border-radius: 10px;
+        box-shadow: 0 3px 15px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    
+
+    .group-item:hover {
+        transform: scale(1.03);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Кнопки действий ("Edit" и "Delete") */
+    .action-buttons {
+        text-align: right;
+        margin-bottom: 10px;
+    }
+
     .btn {
-        padding: 5px 10px;
+        padding: 10px 16px;
         margin-right: 10px;
+        border-radius: 5px;
         text-decoration: none;
         color: #fff;
-        border-radius: 4px;
+        transition: background-color 0.3s ease;
     }
-    
+
     .btn-primary {
-        background-color: #66d9ef;
+        background-color: #03a9f4;
     }
-    
+
+    .btn-primary:hover {
+        background-color: #0288d1;
+    }
+
     .btn-danger {
-        background-color: #f92672;
+        background-color: #ff5252;
     }
-    
+
+    .btn-danger:hover {
+        background-color: #e53935;
+    }
+
+    /* Ссылки на пользователей и группы */
+    a.username {
+        color: #80cbc4;
+        font-weight: 500;
+        font-size: 1.2em;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    a.username:hover {
+        color: #4db6ac;
+    }
+
+    h4 a {
+        color: #fff;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    h4 a:hover {
+        color: #03a9f4;
+    }
+
+    /* Описание группы */
+    small {
+        color: #b0bec5;
+        font-size: 0.9em;
+    }
+
+    /* Горизонтальная линия */
+    hr {
+        border-color: #424242;
+        margin: 15px 0;
+    }
+
+    /* Кнопка для начала чата с пользователями */
+    .chat-btn {
+        background-color: #0A81AB;
+        color: #fff;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: bold;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .chat-btn:hover {
+        background-color: #21E6C1;
+        transform: scale(1.05);
+    }
+
 </style>
 
 <!--КОНЕЦ Стили-->

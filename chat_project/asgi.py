@@ -8,7 +8,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'chat_project.settings')
 
 django_asgi_app = get_asgi_application()
 
-from chat import routing  # Импортируйте маршруты для WebSocket
+from chat import routing  
 
 
 application = ProtocolTypeRouter({
@@ -19,3 +19,5 @@ application = ProtocolTypeRouter({
         ))
     ),
 })
+
+
