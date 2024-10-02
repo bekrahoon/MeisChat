@@ -52,7 +52,7 @@ access_token = scoped_credentials.token  # Токен доступа
 
 
 def send_notification(token, title, body, click_action_url=None):
-    url = "https://fcm.googleapis.com/v1/projects/chat-1a046/messages:send"
+    url = "https://fcm.googleapis.com/v1/projects/your_projectId/messages:send" #! Insert your projectId
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
@@ -122,13 +122,13 @@ def showFirebaseJS(request):
         'importScripts("https://www.gstatic.com/firebasejs/8.6.3/firebase-app.js");'
         'importScripts("https://www.gstatic.com/firebasejs/8.6.3/firebase-messaging.js"); '
         "const firebaseConfig = {"
-        '    apiKey: "AIzaSyAGY1ytwc1uWbaj0Irr9-91kcR2suSQxvo",'
-        '    authDomain: "chat-1a046.firebaseapp.com",'
-        '    projectId: "chat-1a046",'
-        '    storageBucket: "chat-1a046.appspot.com",'
-        '    messagingSenderId: "100039898809",'
-        '    appId: "1:100039898809:web:d75ce071caadd3c8924d68",'
-        '    measurementId: "G-PY30DVF1J3"'
+        '    apiKey: "",' #! добавить сюда apiKey 
+        '    authDomain: "",' #! добавить сюда authDomain 
+        '    projectId: "",' #! добавить сюда projectId 
+        '    storageBucket: "",' #! добавить сюда storageBucket 
+        '    messagingSenderId: "",' #! добавить сюда messagingSenderId 
+        '    appId: "",' #! добавить сюда appId 
+        '    measurementId: ""' #! добавить сюда measurementId 
         "};"
         "firebase.initializeApp(firebaseConfig);"
         "const messaging = firebase.messaging();"

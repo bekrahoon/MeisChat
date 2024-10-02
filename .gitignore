@@ -25,3 +25,6 @@ media/files/Telegram.exe
 cred/
 
 migrations/
+
+templates/main.html
+views/notis.py
