@@ -144,7 +144,7 @@ python -m venv venv
 ```
 #### And then we go into it
 ```sh
-source venv/bin/activate  # для Windows: venv\Scripts\activate
+source venv/bin/activate  # для Windows: venv/Scripts/activate
 ```
 
 #### After that we install all the necessary dependencies
