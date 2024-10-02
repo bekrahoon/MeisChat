@@ -3,13 +3,12 @@ media/
 
 # Игнорировать скомпилированные файлы Python
 __pycache__/
-*.pyc
 
 
 # Игнорировать файлы и папки, связанные с виртуальной средой
 .env
+venv/
 newenv/
-
 # Игнорировать статические файлы, собранные с помощью Django
 staticfiles/
 
@@ -28,3 +27,5 @@ migrations/
 
 templates/main.html
 views/notis.py
+
+*.pyc
