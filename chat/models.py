@@ -86,15 +86,3 @@ class UserStatus(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.username}: {self.status}"
-
-
-class Notification(models.Model):
-    message = models.ForeignKey(Message, on_delete=models.CASCADE)
-    user = models.ForeignKey(MyUser, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = (
-            "message",
-            "user",
-        )
